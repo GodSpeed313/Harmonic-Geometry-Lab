@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS / HARMONIC GEOMETRY LAB / 07</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=IBM+Plex+Mono:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root {
+    --bg:#0a0a0a;--fg:#e8e0d4;--muted:#5a5550;--accent:#d4a03c;
+    --accent-dim:rgba(212,160,60,0.3);--card:rgba(18, 17, 16, 0.85);
+    --border:rgba(212,160,60,0.15);--panel-bg:rgba(12,11,10,0.92);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Mono',monospace;overflow:hidden;width:100vw;height:100vh;cursor:crosshair}
+#canvas-container{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
+.ui-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:10;pointer-events:none}
+.ui-overlay>*{pointer-events:auto}
+.vignette{position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.6) 100%);pointer-events:none;z-index:5}
+.scanlines{position:fixed;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:100}
+.top-bar{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:linear-gradient(180deg,rgba(10,10,10,0.97) 0%,transparent 100%);border-bottom:1px solid var(--border)}
+.top-bar-title{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:4px;color:var(--accent)}
+.top-bar-subtitle{font-size:9px;font-weight:300;color:var(--muted);letter-spacing:2px;margin-top:2px}
+.top-bar-right{display:flex;align-items:center;gap:14px}
+.status-dot{width:5px;height:5px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px rgba(74,222,128,0.6);animation:pulse-dot 2s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.3}}
+.status-text{font-size:8px;letter-spacing:2px;color:var(--muted)}
+.mode-indicator{font-size:8px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;opacity:0.85}
+.stencil-panel{position:absolute;left:20px;top:72px;width:310px;background:var(--panel-bg);border:1px solid var(--border);border-radius:3px;backdrop-filter:blur(24px);overflow:hidden}
+.panel-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-header-title{font-family:'Orbitron',sans-serif;font-size:9px;font-weight:500;letter-spacing:2.5px;color:var(--accent)}
+.panel-header-badge{font-size:7px;padding:2px 7px;border:1px solid var(--accent-dim);border-radius:2px;color:var(--muted);letter-spacing:1px}
+.stencil-body{padding:10px}
+.blueprint-section{margin-bottom:10px}
+.blueprint-label{font-size:7px;letter-spacing:2.5px;color:var(--muted);margin-bottom:5px;text-transform:uppercase}
+.blueprint-canvas{width:100%;border:1px solid var(--border);border-radius:2px;background:rgba(0,0,0,0.5);display:block}
+.stencil-readout{padding:8px 14px;border-top:1px solid var(--border);font-size:8px;letter-spacing:1px;color:var(--muted);line-height:1.9}
+.stencil-readout span{color:var(--fg)}
+.hud-panel{position:absolute;right:20px;top:72px;width:220px;background:var(--panel-bg);border:1px solid var(--border);border-radius:3px;backdrop-filter:blur(24px)}
+.catalog-list{padding:4px 0}
+.catalog-item{padding:7px 14px;display:flex;align-items:center;justify-content:space-between;font-size:9px;letter-spacing:2px;color:var(--muted);cursor:pointer;transition:all 0.3s;border-left:2px solid transparent;user-select:none}
+.catalog-item:hover{color:var(--fg);background:rgba(212,160,60,0.04)}
+.catalog-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(212,160,60,0.07)}
+.catalog-item-index{font-size:7px;opacity:0.35}
+.mode-toolbar{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;padding:10px 14px;border-top:1px solid var(--border)}
+.mode-button{padding:8px 6px;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;border:1px solid rgba(255,255,255,0.08);border-radius:3px;background:transparent;color:var(--muted);cursor:pointer;transition:all 0.2s}
+.mode-button.active{color:var(--accent);border-color:var(--accent);background:rgba(212,160,60,0.08)}
+.mode-button:hover{color:var(--fg);border-color:rgba(212,160,60,0.35)}
+.legend-block{padding:8px 14px;font-size:7px;letter-spacing:1.5px;color:var(--muted);border-top:1px solid var(--border);text-transform:uppercase}
+.freq-control{padding:14px;border-top:1px solid var(--border)}
+.freq-label{font-size:7px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;text-transform:uppercase}
+.freq-label em{font-style:normal;color:var(--accent)}
+.freq-wave-icon{text-align:center;margin-bottom:6px;color:var(--accent);font-size:13px;animation:wave-glow 2s ease-in-out infinite}
+@keyframes wave-glow{0%,100%{text-shadow:0 0 4px rgba(212,160,60,0.2)}50%{text-shadow:0 0 14px rgba(212,160,60,0.8)}}
+.freq-slider-container{position:relative;width:100%;height:20px;display:flex;align-items:center}
+.freq-track{width:100%;height:2px;background:rgba(255,255,255,0.06);border-radius:1px;position:relative}
+.freq-fill{height:100%;background:linear-gradient(90deg,var(--accent-dim),var(--accent));border-radius:1px;width:50%;box-shadow:0 0 8px rgba(212,160,60,0.2);transition:width 0.05s}
+.freq-knob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px rgba(212,160,60,0.5),0 0 3px rgba(212,160,60,0.9);cursor:grab;transition:box-shadow 0.2s}
+.freq-knob:hover,.freq-knob:focus-visible{box-shadow:0 0 18px rgba(212,160,60,0.8),0 0 5px rgba(212,160,60,1);outline:none}
+.freq-knob:active{cursor:grabbing}
+.freq-value{text-align:center;margin-top:6px;font-size:10px;color:var(--accent);font-family:'Orbitron',sans-serif;letter-spacing:2px}
+.resonance-control{padding:14px;border-top:1px solid var(--border);display:none}
+.resonance-source-row{display:flex;gap:6px;margin-bottom:8px}
+.resonance-file-label{background:transparent;border:1px solid var(--accent-dim);color:var(--muted);font-size:7px;letter-spacing:1.5px;padding:4px 7px;cursor:pointer;text-transform:uppercase;flex:1;text-align:center}
+.resonance-file-label:hover{color:var(--fg);border-color:var(--accent)}
+.resonance-readout{font-size:7px;letter-spacing:1px;color:var(--muted);line-height:1.7;text-transform:uppercase}
+.resonance-readout span{color:var(--accent)}
+.holo-status{position:absolute;top:50%;left:50%;transform:translate(-50%,-155px);display:flex;align-items:center;gap:7px;pointer-events:none}
+.holo-status-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);animation:pulse-dot 3s ease-in-out infinite}
+.holo-status-text{font-size:7px;letter-spacing:3px;color:var(--accent);opacity:0.65}
+.center-label{position:absolute;bottom:170px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;white-space:nowrap}
+.center-label-main{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:500;letter-spacing:5px;color:var(--accent);opacity:0.85;margin-bottom:3px}
+.center-label-sub{font-size:7px;letter-spacing:2.5px;color:var(--muted)}
+.footer-bar{position:absolute;bottom:0;left:0;right:0;height:36px;display:flex;align-items:center;justify-content:center;background:linear-gradient(0deg,rgba(10,10,10,0.97) 0%,transparent 100%);border-top:1px solid var(--border)}
+.footer-text{font-size:8px;letter-spacing:3px;color:var(--muted)}
+.footer-text span{color:var(--accent)}
+.measurement-panel{position:absolute;right:20px;bottom:54px;width:250px;padding:10px 12px;background:rgba(10,10,10,0.85);border:1px solid var(--border);border-radius:3px;backdrop-filter:blur(18px);pointer-events:auto}
+.measurement-panel-title{font-family:'Orbitron',sans-serif;font-size:8px;letter-spacing:2.5px;color:var(--accent);margin-bottom:6px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.measurement-action{background:transparent;border:1px solid var(--accent-dim);color:var(--muted);font-size:7px;letter-spacing:1.5px;padding:4px 7px;cursor:pointer;text-transform:uppercase}
+.measurement-action:hover{color:var(--fg);border-color:var(--accent)}
+.measurement-actions-row{display:flex;gap:6px;padding:6px 12px 2px;border-top:1px solid var(--border);margin-top:4px}
+.measurement-log{display:flex;flex-direction:column;gap:4px;max-height:120px;overflow:auto}
+.measurement-row{font-size:7px;letter-spacing:1px;color:var(--muted);padding:4px 0;border-top:1px solid rgba(255,255,255,0.05)}
+.measurement-row:first-child{border-top:0;padding-top:0}
+.corner-deco{position:absolute;width:16px;height:16px;border-color:var(--border);border-style:solid;border-width:0}
+.corner-deco.tl{top:58px;left:10px;border-top-width:1px;border-left-width:1px}
+.corner-deco.tr{top:58px;right:10px;border-top-width:1px;border-right-width:1px}
+.corner-deco.bl{bottom:40px;left:10px;border-bottom-width:1px;border-left-width:1px}
+.corner-deco.br{bottom:40px;right:10px;border-bottom-width:1px;border-right-width:1px}
+@media(max-width:960px){.stencil-panel{width:220px;left:10px}.stencil-panel .blueprint-section:last-child{display:none}.hud-panel{width:170px;right:10px}}
+@media(max-width:680px){.stencil-panel{display:none}.hud-panel{width:150px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div class="vignette"></div>
+<div class="scanlines"></div>
+
+<div class="ui-overlay">
+    <div class="corner-deco tl"></div><div class="corner-deco tr"></div>
+    <div class="corner-deco bl"></div><div class="corner-deco br"></div>
+
+    <header class="top-bar">
+        <div>
+            <div class="top-bar-title">NEXUS / HARMONIC GEOMETRY LAB / 07</div>
+            <div class="top-bar-subtitle">SACRED GEOMETRY INTERFACE v3.2.1</div>
+        </div>
+        <div class="top-bar-right">
+            <div class="status-dot"></div>
+            <div class="status-text">HOLO-FIELD ACTIVE</div>
+            <div class="mode-indicator">MODE: CONNECT</div>
+        </div>
+    </header>
+
+    <aside class="stencil-panel" id="stencil-panel" aria-label="Stencil Projection Panel">
+        <div class="panel-header">
+            <div class="panel-header-title">δ DODECA // STENCIL PROJECTION</div>
+            <div class="panel-header-badge" id="stencil-badge">LIVE</div>
+        </div>
+        <div class="stencil-body">
+            <div class="blueprint-section active" data-view="net">
+                <div class="blueprint-label">Net View — Unfolded Plan</div>
+                <canvas class="blueprint-canvas" id="net-canvas" width="290" height="150"></canvas>
+            </div>
+            <div class="blueprint-section" data-view="ortho">
+                <div class="blueprint-label">Ortho View — Top-Down Projection</div>
+                <canvas class="blueprint-canvas" id="ortho-canvas" width="290" height="110"></canvas>
+            </div>
+            <div class="blueprint-section" data-view="detail">
+                <div class="blueprint-label">Face Detail — Pentagon Geometry</div>
+                <canvas class="blueprint-canvas" id="detail-canvas" width="290" height="135"></canvas>
+            </div>
+        </div>
+        <div class="stencil-readout">
+            PROJECTION TYPE: <span>Net Layout (A4 optimized for print)</span><br>
+            SCALE: <span>1:1.618</span> &nbsp;|&nbsp; UNIT: <span>φ-relative</span><br>
+            FACES: <span>12</span> &nbsp;|&nbsp; EDGES: <span>30</span> &nbsp;|&nbsp; VERTICES: <span>20</span>
+        </div>
+    </aside>
+
+    <aside class="hud-panel" aria-label="Specimen Catalog">
+        <div class="panel-header">
+            <div class="panel-header-title">SPECIMEN CATALOG</div>
+            <div class="panel-header-badge">PLATONIC</div>
+        </div>
+        <div class="catalog-list" role="listbox">
+            <div class="catalog-item" role="option" data-solid="tetra"><span>TETRA</span><span class="catalog-item-index">04</span></div>
+            <div class="catalog-item" role="option" data-solid="hexa"><span>HEXA</span><span class="catalog-item-index">06</span></div>
+            <div class="catalog-item" role="option" data-solid="octa"><span>OCTA</span><span class="catalog-item-index">08</span></div>
+            <div class="catalog-item" role="option" data-solid="icosa"><span>ICOSA</span><span class="catalog-item-index">20</span></div>
+            <div class="catalog-item active" role="option" data-solid="dodeca" aria-selected="true"><span>DODECA</span><span class="catalog-item-index">12</span></div>
+            <div class="catalog-item" role="option" data-solid="meta"><span>MERKABA</span><span class="catalog-item-index">✦</span></div>
+        </div>
+        <div class="mode-toolbar" role="group" aria-label="Interaction mode selector">
+            <button class="mode-button" type="button" data-mode="VIEW">VIEW</button>
+            <button class="mode-button active" type="button" data-mode="CONNECT">CONNECT</button>
+            <button class="mode-button" type="button" data-mode="CUSTOM">CUSTOM</button>
+            <button class="mode-button" type="button" data-mode="DISCONNECT">DISCONNECT</button>
+            <button class="mode-button" type="button" data-mode="CUT">CUT</button>
+            <button class="mode-button" type="button" data-mode="SKETCH">SKETCH</button>
+            <button class="mode-button" type="button" data-mode="RESONANCE">RESONANCE</button>
+        </div>
+        <div class="legend-block">KEYS: 1=VIEW · 2=CONNECT · 3=DISCONNECT · 4=CUT · 5=SKETCH · 6=CUSTOM · 7=RESONANCE</div>
+        <div class="freq-control">
+            <div class="freq-label">CYMATIC HARMONIC FREQUENCY (<em>f</em>)</div>
+            <div class="freq-wave-icon"><i class="fas fa-wave-square"></i></div>
+            <div class="freq-slider-container" id="slider-track">
+                <div class="freq-track"><div class="freq-fill" id="freq-fill"></div></div>
+                <div class="freq-knob" id="freq-knob" role="slider" aria-label="Frequency control" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" tabindex="0"></div>
+            </div>
+            <div class="freq-value" id="freq-value">432.0 Hz</div>
+        </div>
+        <div class="resonance-control" id="resonance-control">
+            <div class="freq-label">RESONANCE — HEMISPHERIC SYNC INPUT</div>
+            <div class="resonance-source-row">
+                <label class="resonance-file-label" for="resonance-file-input"><i class="fas fa-file-audio"></i> UPLOAD</label>
+                <input type="file" id="resonance-file-input" accept="audio/*" style="display:none">
+                <button class="resonance-file-label" id="resonance-mic-btn" type="button"><i class="fas fa-microphone"></i> MIC</button>
+                <button class="resonance-file-label" id="resonance-stop-btn" type="button"><i class="fas fa-stop"></i> STOP</button>
+            </div>
+            <div class="resonance-readout" id="resonance-readout">NO AUDIO SOURCE — DIAL DRIVEN</div>
+        </div>
+    </aside>
+
+    <div class="holo-status">
+        <div class="holo-status-dot"></div>
+        <div class="holo-status-text">HOLO-FIELD STABLE</div>
+    </div>
+
+    <div class="center-label">
+        <div class="center-label-main">DODECAHEDRON</div>
+        <div class="center-label-sub">12 FACES / 30 EDGES / 20 VERTICES</div>
+    </div>
+
+    <div class="measurement-panel" aria-live="polite">
+        <div class="measurement-panel-title">
+            <span>MEASUREMENT LAB</span>
+            <button class="measurement-action" id="clear-connections-btn" type="button">CLEAR SCENE</button>
+        </div>
+        <div class="measurement-log" id="measurement-log">
+            <div class="measurement-row">NO LINKS YET</div>
+        </div>
+        <div class="measurement-actions-row">
+            <button class="measurement-action" id="export-specimen-btn" type="button">EXPORT</button>
+            <button class="measurement-action" id="clear-data-btn" type="button">CLEAR DATA</button>
+        </div>
+    </div>
+
+    <footer class="footer-bar">
+        <div class="footer-text"><span>TOUCH</span> to manipulate solid / <span>DRAG</span> views</div>
+    </footer>
+</div>
+
+<script type="importmap">
+{
+    "imports":{
+        "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
+
+/* ====== Scene Setup ====== */
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0a0a0a, 0.032);
+
+const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(0, 2.8, 7.5);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.75;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+container.appendChild(renderer.domElement);
+
+/* ====== Controls ====== */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.minDistance = 4;
+controls.maxDistance = 14;
+controls.maxPolarAngle = Math.PI * 0.58;
+controls.minPolarAngle = Math.PI * 0.12;
+controls.target.set(0, 1.2, 0);
+controls.enablePan = false;
+
+/* ====== Lighting ====== */
+scene.add(new THREE.AmbientLight(0x1a1510, 0.5));
+
+const spotLight = new THREE.SpotLight(0xd4a03c, 18, 22, Math.PI * 0.13, 0.6, 1.5);
+spotLight.position.set(-3, 9, 2);
+spotLight.target.position.set(0, 1, 0);
+scene.add(spotLight, spotLight.target);
+
+const fillLight = new THREE.PointLight(0x3a4a5a, 2.5, 16);
+fillLight.position.set(5, 3, -4);
+scene.add(fillLight);
+
+const rimLight = new THREE.PointLight(0xd4a03c, 4, 14);
+rimLight.position.set(0, 2, -6);
+scene.add(rimLight);
+
+const groundGlow = new THREE.PointLight(0xd4a03c, 2, 7);
+groundGlow.position.set(0, 0.05, 0);
+scene.add(groundGlow);
+
+/* ====== Reflective Floor ====== */
+const pr = Math.min(devicePixelRatio, 2);
+const floorReflector = new Reflector(
+    new THREE.PlaneGeometry(30, 30),
+    { clipBias: 0.003, textureWidth: innerWidth * pr, textureHeight: innerHeight * pr, color: 0x111111 }
+);
+floorReflector.rotation.x = -Math.PI / 2;
+floorReflector.position.y = -0.01;
+scene.add(floorReflector);
+
+const floorOverlay = new THREE.Mesh(
+    new THREE.PlaneGeometry(30, 30),
+    new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.25, metalness: 0.85, transparent: true, opacity: 0.55 })
+);
+floorOverlay.rotation.x = -Math.PI / 2;
+floorOverlay.position.y = 0.002;
+scene.add(floorOverlay);
+
+/* ====== Glass Laboratory Structure ====== */
+const glassGroup = new THREE.Group();
+const frameMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0.12 });
+const s = 1.4, h = 3.0;
+const fp = [
+    [-s,0,-s],[s,0,-s],[s,0,s],[-s,0,s],
+    [-s,h,-s],[s,h,-s],[s,h,s],[-s,h,s]
+];
+const frameEdges = [
+    [0,1],[1,2],[2,3],[3,0],
+    [4,5],[5,6],[6,7],[7,4],
+    [0,4],[1,5],[2,6],[3,7]
+];
+const framePts = [];
+frameEdges.forEach(([a,b]) => {
+    framePts.push(new THREE.Vector3(...fp[a]), new THREE.Vector3(...fp[b]));
+});
+glassGroup.add(new THREE.LineSegments(
+    new THREE.BufferGeometry().setFromPoints(framePts), frameMat
+));
+
+const braceMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0.04 });
+const bracePts = [
+    new THREE.Vector3(-s,0,-s), new THREE.Vector3(s,h,s),
+    new THREE.Vector3(s,0,-s), new THREE.Vector3(-s,h,s),
+];
+glassGroup.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(bracePts), braceMat));
+
+const gpm = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.025,
+    roughness: 0.05, metalness: 0, side: THREE.DoubleSide, depthWrite: false
+});
+const pg = new THREE.PlaneGeometry(s * 2, h);
+const p1 = new THREE.Mesh(pg, gpm); p1.position.set(0, h/2, -s); glassGroup.add(p1);
+const p2 = new THREE.Mesh(pg, gpm); p2.position.set(-s, h/2, 0); p2.rotation.y = Math.PI/2; glassGroup.add(p2);
+const p3 = new THREE.Mesh(pg, gpm); p3.position.set(s, h/2, 0); p3.rotation.y = -Math.PI/2; glassGroup.add(p3);
+scene.add(glassGroup);
+
+/* ====== Geometry Generation Engines ====== */
+function createMerkabaGeometry() {
+    const geom = new THREE.BufferGeometry();
+    const vertices = [];
+    
+    const t1 = new THREE.ConeGeometry(0.9, 1.2, 3, 1);
+    t1.rotateX(Math.PI);
+    t1.translate(0, 0.2, 0);
+    const t2 = new THREE.ConeGeometry(0.9, 1.2, 3, 1);
+    t2.translate(0, -0.2, 0);
+    
+    const p1 = t1.attributes.position.array;
+    const p2 = t2.attributes.position.array;
+    for(let i=0; i<p1.length; i++) vertices.push(p1[i]);
+    for(let i=0; i<p2.length; i++) vertices.push(p2[i]);
+    
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    return geom;
+}
+
+function buildGeometryForKey(key) {
+    switch (key) {
+        case 'tetra':
+            return new THREE.TetrahedronGeometry(1.1);
+        case 'hexa':
+            return new THREE.BoxGeometry(1, 1, 1);
+        case 'octa':
+            return new THREE.OctahedronGeometry(1.1);
+        case 'icosa':
+            return new THREE.IcosahedronGeometry(1.1);
+        case 'meta':
+            return createMerkabaGeometry();
+        default:
+            return new THREE.DodecahedronGeometry(1.0);
+    }
+}
+
+/* ====== Active Core Solid Setup ====== */
+const coreGroup = new THREE.Group();
+coreGroup.position.y = 1.5;
+scene.add(coreGroup);
+
+let currentMesh, currentWireframe;
+let uniqueVerts = [];
+const vertDotGeo = new THREE.SphereGeometry(0.028, 8, 8);
+const vertDotMat = new THREE.MeshBasicMaterial({ color: 0xd4a03c });
+const edgesMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0.65 });
+const coreMat = new THREE.MeshPhysicalMaterial({
+    color: 0xd4a03c, transparent: true, opacity: 0.06,
+    roughness: 0.1, metalness: 0.3, side: THREE.DoubleSide,
+    depthWrite: false, emissive: 0xd4a03c, emissiveIntensity: 0.04
+});
+
+function loadSolid(key) {
+    activeSolidKey = key;
+    activeSelectedNodes = [];
+    lastMeasurementNodes = [];
+    measurementLine.visible = false;
+    clearCustomPoints();
+    clearConnectionLines();
+    updateMeasurementDisplay();
+    updateMeasurementLog();
+
+    while(coreGroup.children.length > 0) {
+        coreGroup.remove(coreGroup.children[0]);
+    }
+    
+    const geo = buildGeometryForKey(key);
+    currentMesh = new THREE.Mesh(geo, coreMat);
+    coreGroup.add(currentMesh);
+    
+    currentWireframe = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgesMat);
+    coreGroup.add(currentWireframe);
+    
+    uniqueVerts = [];
+    const posArr = geo.attributes.position;
+    const seen = new Set();
+    
+    for (let i = 0; i < posArr.count; i++) {
+        const k = `${posArr.getX(i).toFixed(2)},${posArr.getY(i).toFixed(2)},${posArr.getZ(i).toFixed(2)}`;
+        if (!seen.has(k)) {
+            seen.add(k);
+            const v = new THREE.Vector3(posArr.getX(i), posArr.getY(i), posArr.getZ(i));
+            const vertexIndex = uniqueVerts.length;
+            uniqueVerts.push(v);
+
+            const dot = new THREE.Mesh(vertDotGeo, new THREE.MeshBasicMaterial({ color: 0xd4a03c }));
+            dot.name = 'vertex-dot';
+            dot.userData.isVertexDot = true;
+            dot.userData.vertexId = `vtx-${vertexIndex}`;
+            dot.position.copy(v);
+            cacheRestState(dot, NATIVE_VERTEX_CENTER);
+            coreGroup.add(dot);
+        }
+    }
+}
+
+/* ====== Flower of Life Background ====== */
+const flowerGroup = new THREE.Group();
+flowerGroup.position.y = 1.5;
+const flowerMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0, depthWrite: false });
+
+function makeFlowerRing(r, ringR, count) {
+    const circles = [];
+    const cp = [];
+    for (let j = 0; j <= 64; j++) {
+        const a = (j/64)*Math.PI*2;
+        cp.push(new THREE.Vector3(Math.cos(a)*r, Math.sin(a)*r, 0));
+    }
+    circles.push(cp);
+    for (let i = 0; i < count; i++) {
+        const ang = (i/count)*Math.PI*2;
+        const cx = Math.cos(ang)*ringR, cy = Math.sin(ang)*ringR;
+        const pts = [];
+        for (let j = 0; j <= 64; j++) {
+            const a = (j/64)*Math.PI*2;
+            pts.push(new THREE.Vector3(cx+Math.cos(a)*r, cy+Math.sin(a)*r, 0));
+        }
+        circles.push(pts);
+    }
+    return circles;
+}
+
+const fr = 1.7, fRing = fr;
+makeFlowerRing(fr, fRing, 6).forEach(pts => { flowerGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), flowerMat.clone())); });
+makeFlowerRing(fr, fRing, 6).forEach(pts => { const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), flowerMat.clone()); line.rotation.x = Math.PI/2; flowerGroup.add(line); });
+makeFlowerRing(fr, fRing, 6).forEach(pts => { const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), flowerMat.clone()); line.rotation.y = Math.PI/2; flowerGroup.add(line); });
+flowerGroup.scale.setScalar(0.01);
+scene.add(flowerGroup);
+
+/* ====== Ambient Light Shaft ====== */
+const shaftGeo = new THREE.CylinderGeometry(0.25, 1.8, 9, 16, 1, true);
+const shaftMat = new THREE.MeshBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0.012, side: THREE.DoubleSide, depthWrite: false });
+const lightShaft = new THREE.Mesh(shaftGeo, shaftMat);
+lightShaft.position.set(-3, 4.5, 2);
+scene.add(lightShaft);
+
+/* ====== Floating Atmospheric Particles ====== */
+const pCount = 600;
+const pPos = new Float32Array(pCount * 3);
+const pVel = [];
+for (let i = 0; i < pCount; i++) {
+    pPos[i*3] = (Math.random()-0.5)*22;
+    pPos[i*3+1] = Math.random()*9;
+    pPos[i*3+2] = (Math.random()-0.5)*22;
+    pVel.push({ x:(Math.random()-0.5)*0.002, y:Math.random()*0.004+0.001, z:(Math.random()-0.5)*0.002 });
+}
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({
+    color: 0xd4a03c, size: 0.018, transparent: true, opacity: 0.35,
+    sizeAttenuation: true, depthWrite: false, blending: THREE.AdditiveBlending
+}));
+scene.add(particles);
+
+/* ====== Holographic Measuring Hand ====== */
+const handGroup = new THREE.Group();
+const handMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0, depthWrite: false });
+
+const palmPts = [
+    [0,0],[0.35,0.08],[0.45,0.45],[0.38,0.75],[0.08,0.95],
+    [-0.18,1.0],[-0.38,0.88],[-0.48,0.58],[-0.42,0.28],[-0.28,0],[0,0]
+].map(p => new THREE.Vector3(p[0], p[1], 0));
+handGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(palmPts), handMat));
+
+function makeFinger(sx, sy, len, ang) {
+    const pts = [];
+    for (let i = 0; i <= 10; i++) {
+        const t = i/10;
+        pts.push(new THREE.Vector3(sx + Math.sin(ang)*len*t, sy + Math.cos(ang)*len*t, Math.sin(t*Math.PI)*0.04));
+    }
+    return pts;
+}
+const fingers = [
+    makeFinger(0.08, 0.95, 0.38, 0.08),
+    makeFinger(0.22, 0.85, 0.42, 0.03),
+    makeFinger(0.32, 0.68, 0.38, -0.06),
+    makeFinger(0.33, 0.48, 0.28, -0.18),
+    makeFinger(-0.08, 0.88, 0.22, 0.32)
+];
+fingers.forEach(pts => handGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), handMat)));
+
+const touchDots = [];
+const touchDotGeo = new THREE.SphereGeometry(0.022, 8, 8);
+fingers.forEach((pts, i) => {
+    const mat = new THREE.MeshBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0 });
+    const tip = pts[pts.length - 1];
+    const mesh = new THREE.Mesh(touchDotGeo, mat);
+    mesh.position.copy(tip);
+    handGroup.add(mesh);
+    touchDots.push({ mesh, mat, tip: tip.clone() });
+});
+
+const connLineMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0, depthWrite: false });
+const connLines = [];
+for (let i = 0; i < 5; i++) {
+    const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0)]);
+    const line = new THREE.Line(geo, connLineMat.clone());
+    handGroup.add(line);
+    connLines.push(line);
+}
+
+handGroup.position.set(1.3, 0.8, 1.6);
+handGroup.rotation.y = -Math.PI * 0.3;
+handGroup.rotation.z = -Math.PI * 0.08;
+handGroup.scale.setScalar(1.6);
+scene.add(handGroup);
+
+/* ====== Interface State Metrics ====== */
+let activeSolidKey = 'dodeca';
+let isHovering = false;
+let frequency = 0.5;
+let flowerTargetScale = 0.01;
+let flowerCurrentScale = 0.01;
+let handTargetOpacity = 0;
+let handCurrentOpacity = 0;
+
+/* ====== Node Measurement State ====== */
+let activeSelectedNodes = [];
+let lastMeasurementNodes = [];
+let specimenLog = JSON.parse(localStorage.getItem('specimens:log') || '[]');
+let measurementCounter = specimenLog.length;
+const measurementLineMat = new THREE.LineBasicMaterial({ color: 0x4ade80, linewidth: 2, depthWrite: false });
+const measurementLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+const measurementLine = new THREE.Line(measurementLineGeo, measurementLineMat);
+measurementLine.visible = false;
+scene.add(measurementLine);
+
+const connectionGroup = new THREE.Group();
+scene.add(connectionGroup);
+let connectionLines = [];
+const connectionLineMaterial = new THREE.LineBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.85, depthWrite: false });
+const sketchLineMaterial = new THREE.LineBasicMaterial({ color: 0x7c3aed, transparent: true, opacity: 0.9, depthWrite: false });
+const sketchGroup = new THREE.Group();
+scene.add(sketchGroup);
+let sketchLines = [];
+let sketchAnchorNode = null;
+const previewLineMat = new THREE.LineDashedMaterial({ color: 0x4ade80, transparent: true, opacity: 0.5, dashSize: 0.08, gapSize: 0.06, depthWrite: false });
+const previewLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+const previewLine = new THREE.Line(previewLineGeo, previewLineMat);
+previewLine.computeLineDistances();
+previewLine.visible = false;
+scene.add(previewLine);
+
+renderer.localClippingEnabled = true;
+const cutPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const cutPlaneGeo = new THREE.PlaneGeometry(5, 5);
+const cutPlaneMesh = new THREE.Mesh(cutPlaneGeo, new THREE.MeshBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false }));
+cutPlaneMesh.rotation.x = -Math.PI / 2;
+cutPlaneMesh.position.y = 0;
+cutPlaneMesh.visible = false;
+scene.add(cutPlaneMesh);
+
+const customGroup = new THREE.Group();
+scene.add(customGroup);
+let customPoints = [];
+let customPointCounter = 0;
+
+/* construction plane — click surface for CUSTOM mode point placement */
+const constructionPlaneFill = new THREE.Mesh(
+    new THREE.CircleGeometry(3.2, 64),
+    new THREE.MeshBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0.04, side: THREE.DoubleSide, depthWrite: false })
+);
+constructionPlaneFill.rotation.x = -Math.PI / 2;
+constructionPlaneFill.position.y = 1.5;
+constructionPlaneFill.visible = false;
+scene.add(constructionPlaneFill);
+
+const constructionPlaneGroup = new THREE.Group();
+constructionPlaneGroup.position.y = 1.5;
+constructionPlaneGroup.visible = false;
+scene.add(constructionPlaneGroup);
+
+const cpRingMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0.3, depthWrite: false });
+const cpRingPts = [];
+for (let i = 0; i <= 64; i++) { const a = (i / 64) * Math.PI * 2; cpRingPts.push(new THREE.Vector3(Math.cos(a) * 3.2, 0, Math.sin(a) * 3.2)); }
+constructionPlaneGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cpRingPts), cpRingMat));
+
+const cpAxisMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0.15, depthWrite: false });
+constructionPlaneGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3.2, 0, 0), new THREE.Vector3(3.2, 0, 0)]), cpAxisMat));
+constructionPlaneGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, -3.2), new THREE.Vector3(0, 0, 3.2)]), cpAxisMat));
+
+const measurementLogEl = document.getElementById('measurement-log');
+const clearConnectionsBtn = document.getElementById('clear-connections-btn');
+const modeLabelEl = document.querySelector('.mode-indicator');
+let interactionMode = 'CONNECT';
+let hoveredDot = null;
+let hoveredConnection = null;
+const modeButtons = document.querySelectorAll('.mode-button');
+
+function setInteractionMode(mode) {
+    const previousMode = interactionMode;
+    interactionMode = mode;
+    modeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+    if (modeLabelEl) modeLabelEl.textContent = `MODE: ${mode}`;
+    document.body.style.cursor = mode === 'DISCONNECT' ? 'not-allowed' : 'crosshair';
+    previewLine.visible = false;
+    if (mode === 'CUSTOM') {
+        constructionPlaneFill.visible = true;
+        constructionPlaneGroup.visible = true;
+        if (coreMat) coreMat.opacity = 0.015;
+        if (edgesMat) edgesMat.opacity = 0.1;
+        coreGroup.children.forEach(child => { if (child.userData?.isVertexDot) child.visible = false; });
+        document.querySelector('.footer-text').innerHTML = `<span style="color:#4ade80">CUSTOM MODE</span> // CLICK PLANE TO PLACE POINTS / CLICK DOTS TO CONNECT`;
+    } else {
+        constructionPlaneFill.visible = false;
+        constructionPlaneGroup.visible = false;
+        if (coreMat) coreMat.opacity = 0.06;
+        coreGroup.children.forEach(child => { if (child.userData?.isVertexDot) child.visible = true; });
+        transformControls.detach();
+        setActiveSelection(null);
+    }
+    if (mode !== 'CUT') {
+        cutPlane.constant = 0;
+        if (currentMesh) currentMesh.material.clippingPlanes = [];
+        if (currentWireframe) currentWireframe.material.clippingPlanes = [];
+        cutPlaneMesh.visible = false;
+        coreGroup.children.forEach(child => { if (child.userData?.isVertexDot) child.material.clippingPlanes = []; });
+    }
+    if (mode !== 'SKETCH') {
+        sketchAnchorNode = null;
+    }
+    if (resonanceControlEl) resonanceControlEl.style.display = mode === 'RESONANCE' ? 'block' : 'none';
+    if (mode === 'RESONANCE') {
+        document.querySelector('.footer-text').innerHTML = `<span style="color:#4ade80">RESONANCE MODE</span> // UPLOAD A FILE OR ENABLE MIC TO DRIVE THE FIELD`;
+    }
+    if (previousMode === 'RESONANCE' && mode !== 'RESONANCE') {
+        teardownAudioGraph();
+        resetAllVerticesToRest();
+    }
+    updateMeasurementDisplay();
+}
+
+function resetDotHighlight(dot) {
+    if (!dot) return;
+    if (activeSelectedNodes.includes(dot)) {
+        dot.material.color.set(0x4ade80);
+    } else {
+        dot.material.color.set(0xd4a03c);
+    }
+}
+
+function updateHoverState() {
+    if (hoveredDot && !activeSelectedNodes.includes(hoveredDot)) {
+        hoveredDot.material.color.set(0xd4a03c);
+    }
+    if (hoveredConnection) {
+        hoveredConnection.material.opacity = 0.85;
+    }
+    hoveredDot = null;
+    hoveredConnection = null;
+}
+
+function highlightDot(dot) {
+    if (!dot || activeSelectedNodes.includes(dot)) return;
+    dot.material.color.set(0xffffff);
+    hoveredDot = dot;
+}
+
+function highlightConnection(line) {
+    if (!line) return;
+    line.material.opacity = 1.0;
+    hoveredConnection = line;
+}
+
+function clearHighlights() {
+    if (hoveredDot) {
+        resetDotHighlight(hoveredDot);
+        hoveredDot = null;
+    }
+    if (hoveredConnection) {
+        hoveredConnection.material.opacity = 0.85;
+        hoveredConnection = null;
+    }
+}
+
+function placeCustomPoint(worldPos) {
+    customPointCounter++;
+    const mat = new THREE.MeshBasicMaterial({ color: 0xd4a03c });
+    const dot = new THREE.Mesh(vertDotGeo, mat);
+    dot.name = 'vertex-dot';
+    dot.userData.isVertexDot = true;
+    dot.userData.isCustomPoint = true;
+    dot.userData.vertexId = `cust-${customPointCounter}`;
+    dot.position.copy(worldPos);
+    cacheRestState(dot, constructionPlaneFill.position);
+    customGroup.add(dot);
+    customPoints.push(dot);
+    return dot;
+}
+
+function clearCustomPoints() {
+    transformControls.detach();
+    customPoints.forEach(dot => customGroup.remove(dot));
+    customPoints = [];
+}
+
+function clearConnectionLines() {
+    connectionLines.forEach(line => connectionGroup.remove(line));
+    connectionLines = [];
+    sketchLines.forEach(line => sketchGroup.remove(line));
+    sketchLines = [];
+    clearCustomPoints();
+    drawStencilViews();
+}
+
+function setStencilProjection(view) {
+    activeProjectionView = view;
+    document.querySelectorAll('.blueprint-section').forEach(section => {
+        section.classList.toggle('active', section.dataset.view === view);
+    });
+    const stencilBadge = document.getElementById('stencil-badge');
+    if (stencilBadge) {
+        stencilBadge.textContent = view.toUpperCase();
+    }
+    const labelMap = { net: 'NET VIEW', ortho: 'ORTHO VIEW', detail: 'DETAIL VIEW' };
+    const activeRead = solidReadouts[activeSolidKey] || solidReadouts.dodeca;
+    document.querySelector('.stencil-readout').innerHTML = `
+        PROJECTION TYPE: <span>${labelMap[view] || 'LIVE BLUEPRINT'}</span><br>
+        SCALE: <span>1:1.618</span> &nbsp;|&nbsp; UNIT: <span>φ-relative</span><br>
+        FACES: <span>${activeRead[1]}</span> &nbsp;|&nbsp; EDGES: <span>${activeRead[2]}</span> &nbsp;|&nbsp; VERTICES: <span>${activeRead[3]}</span>
+    `;
+}
+
+function updateMeasurementLog() {
+    if (!measurementLogEl) return;
+    if (specimenLog.length === 0) {
+        measurementLogEl.innerHTML = '<div class="measurement-row">NO LINKS YET</div>';
+        return;
+    }
+    measurementLogEl.innerHTML = specimenLog.slice(-8).reverse().map(entry => `
+        <div class="measurement-row">${entry.id} // ${entry.distance.toFixed(3)} φ • ${entry.originRelativeAngleDeg.toFixed(1)}° • ${entry.edgeDirectionDeg.azimuth.toFixed(1)}° az</div>
+    `).join('');
+}
+
+function updateMeasurementDisplay() {
+    if (lastMeasurementNodes.length === 2) {
+        const p1 = new THREE.Vector3().setFromMatrixPosition(lastMeasurementNodes[0].matrixWorld);
+        const p2 = new THREE.Vector3().setFromMatrixPosition(lastMeasurementNodes[1].matrixWorld);
+        const distance = p1.distanceTo(p2);
+        const angleRad = p1.angleTo(p2);
+        const angleDeg = angleRad * (180 / Math.PI);
+
+        const posArr = measurementLine.geometry.attributes.position;
+        posArr.setXYZ(0, p1.x, p1.y, p1.z);
+        posArr.setXYZ(1, p2.x, p2.y, p2.z);
+        posArr.needsUpdate = true;
+        measurementLine.visible = true;
+
+        document.querySelector('.footer-text').innerHTML = `
+            <span style="color:#4ade80">LINK ACTIVE</span> // DISTANCE: <span style="color:#4ade80">${distance.toFixed(4)} φ-units</span> 
+            &nbsp;|&nbsp; ANGLE: <span style="color:#4ade80">${angleDeg.toFixed(2)}°</span>
+        `;
+    } else if (activeSelectedNodes.length === 1) {
+        measurementLine.visible = false;
+        document.querySelector('.footer-text').innerHTML = `<span style="color:#4ade80">NODE SELECTED</span> // CHOOSE A SECOND NODE TO LINK...`;
+    } else {
+        measurementLine.visible = false;
+        document.querySelector('.footer-text').innerHTML = `<span>CLICK</span> DOTS TO MEASURE / <span>CONNECT</span> SHAPES`;
+    }
+}
+
+function getVertexDots() {
+    const native = coreGroup.children.filter(child => child.userData?.isVertexDot || child.name === 'vertex-dot');
+    return [...native, ...customPoints];
+}
+
+function getVertexPositions() {
+    return getVertexDots().map(dot => {
+        const worldPos = new THREE.Vector3();
+        dot.getWorldPosition(worldPos);
+        return { dot, position: worldPos };
+    });
+}
+
+function findFaceLoops() {
+    const vertices = getVertexDots();
+    if (vertices.length < 3 || connectionLines.length < 2) return [];
+
+    const adjacency = new Map();
+    vertices.forEach(dot => adjacency.set(dot, []));
+    connectionLines.forEach(line => {
+        const a = line.userData.nodeA;
+        const b = line.userData.nodeB;
+        if (adjacency.has(a) && adjacency.has(b)) {
+            adjacency.get(a).push(b);
+            adjacency.get(b).push(a);
+        }
+    });
+
+    const loops = [];
+    const seen = new Set();
+
+    function dfs(start, current, path, visited) {
+        for (const next of adjacency.get(current) || []) {
+            if (next === start && path.length >= 3) {
+                const key = path.map(node => node.uuid).join('|');
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    loops.push(path.slice());
+                }
+                continue;
+            }
+            if (visited.has(next.uuid)) continue;
+            visited.add(next.uuid);
+            path.push(next);
+            dfs(start, next, path, visited);
+            path.pop();
+            visited.delete(next.uuid);
+        }
+    }
+
+    vertices.forEach(start => {
+        dfs(start, start, [start], new Set([start.uuid]));
+    });
+
+    return loops.slice(0, 4);
+}
+
+function projectVertexToCanvas(position, view, focus) {
+    const p = position.clone();
+    if (view === 'net') {
+        p.applyAxisAngle(new THREE.Vector3(0, 1, 0), -0.7);
+        p.applyAxisAngle(new THREE.Vector3(1, 0, 0), -0.35);
+        return { x: p.x * 1.2, y: p.y * 1.2 };
+    }
+    if (view === 'detail') {
+        const local = focus ? p.clone().sub(focus) : p;
+        return { x: local.x * 1.4, y: local.z * 1.4 };
+    }
+    return { x: p.x, y: p.z };
+}
+
+function drawStencilView(view) {
+    const canvasId = view === 'net' ? 'net-canvas' : view === 'ortho' ? 'ortho-canvas' : 'detail-canvas';
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < width; x += 10) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+    }
+    for (let y = 0; y < height; y += 10) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+    }
+
+    const vertices = getVertexPositions();
+    if (vertices.length === 0) return;
+
+    const focus = view === 'detail' ? vertices[0].position.clone() : null;
+    const projected = vertices.map(v => ({ ...v, ...projectVertexToCanvas(v.position, view, focus) }));
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const scale = Math.min(width, height) * 0.16;
+
+    projected.forEach(v => {
+        v.x = centerX + v.x * scale;
+        v.y = centerY - v.y * scale;
+    });
+
+    const loops = findFaceLoops();
+    loops.forEach(loop => {
+        const pts = loop.map(node => {
+            const match = projected.find(v => v.dot === node);
+            return match ? { x: match.x, y: match.y } : null;
+        }).filter(Boolean);
+        if (pts.length < 3) return;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        pts.slice(1).forEach(pt => ctx.lineTo(pt.x, pt.y));
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(74,222,128,0.08)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(74,222,128,0.7)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+    });
+
+    connectionLines.forEach(line => {
+        const a = projected.find(v => v.dot === line.userData.nodeA);
+        const b = projected.find(v => v.dot === line.userData.nodeB);
+        if (!a || !b) return;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = 'rgba(212, 160, 60, 0.7)';
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+    });
+
+    sketchLines.forEach(line => {
+        const a = projected.find(v => v.dot === line.userData.nodeA);
+        const b = projected.find(v => v.dot === line.userData.nodeB);
+        if (!a || !b) return;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = 'rgba(124, 58, 237, 0.75)';
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+    });
+
+    projected.forEach(v => {
+        ctx.beginPath();
+        ctx.arc(v.x, v.y, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(212, 160, 60, 0.9)';
+        ctx.fill();
+    });
+
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '7px "IBM Plex Mono", monospace';
+    ctx.fillText(view.toUpperCase(), 10, 16);
+}
+
+function drawStencilViews() {
+    drawStencilView('net');
+    drawStencilView('ortho');
+    drawStencilView('detail');
+}
+
+function setActiveSelection(nodeMesh) {
+    if (activeSelectedNodes[0]) {
+        activeSelectedNodes[0].material = vertDotMat;
+    }
+    activeSelectedNodes = nodeMesh ? [nodeMesh] : [];
+    if (nodeMesh) {
+        nodeMesh.material = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
+    }
+}
+
+function computeEdgeDirection(p1, p2) {
+    const dir = new THREE.Vector3().subVectors(p2, p1).normalize();
+    const azimuth = Math.atan2(dir.x, dir.z) * (180 / Math.PI);
+    const elevation = Math.asin(Math.max(-1, Math.min(1, dir.y))) * (180 / Math.PI);
+    return { azimuth: parseFloat(azimuth.toFixed(2)), elevation: parseFloat(elevation.toFixed(2)) };
+}
+
+function computeInteriorAngles(anchorNode, newNode) {
+    const anchorPos = new THREE.Vector3();
+    anchorNode.getWorldPosition(anchorPos);
+    const newPos = new THREE.Vector3();
+    newNode.getWorldPosition(newPos);
+    const newEdgeDir = new THREE.Vector3().subVectors(newPos, anchorPos).normalize();
+    const results = [];
+    connectionLines.forEach(line => {
+        let otherNode = null;
+        if (line.userData.nodeA === anchorNode) otherNode = line.userData.nodeB;
+        else if (line.userData.nodeB === anchorNode) otherNode = line.userData.nodeA;
+        if (!otherNode || otherNode === newNode) return;
+        const otherPos = new THREE.Vector3();
+        otherNode.getWorldPosition(otherPos);
+        const existingEdgeDir = new THREE.Vector3().subVectors(otherPos, anchorPos).normalize();
+        const dot = Math.max(-1, Math.min(1, newEdgeDir.dot(existingEdgeDir)));
+        results.push({ edgeTo: otherNode.userData.vertexId || 'unknown', angleDeg: parseFloat((Math.acos(dot) * (180 / Math.PI)).toFixed(3)) });
+    });
+    return results;
+}
+
+function saveSpecimenLog() {
+    localStorage.setItem('specimens:log', JSON.stringify(specimenLog));
+}
+
+function exportSpecimenLog() {
+    if (specimenLog.length === 0) return;
+    const ts = new Date().toISOString().replace(/:/g, '-').split('.')[0];
+    const filename = `specimen_${activeSolidKey}_${ts}`;
+
+    const jsonBlob = new Blob([JSON.stringify(specimenLog, null, 2)], { type: 'application/json' });
+    const jsonUrl = URL.createObjectURL(jsonBlob);
+    const jsonLink = document.createElement('a');
+    jsonLink.href = jsonUrl; jsonLink.download = filename + '.json'; jsonLink.click();
+    URL.revokeObjectURL(jsonUrl);
+
+    const csvHeader = 'id,timestamp,solid,nodeA_id,nodeA_x,nodeA_y,nodeA_z,nodeB_id,nodeB_x,nodeB_y,nodeB_z,distance,originRelativeAngleDeg,azimuth,elevation,mode,frequencyHz';
+    const csvRows = specimenLog.map(e => [
+        e.id, e.timestamp, e.solid,
+        e.nodeA.id, e.nodeA.position[0], e.nodeA.position[1], e.nodeA.position[2],
+        e.nodeB.id, e.nodeB.position[0], e.nodeB.position[1], e.nodeB.position[2],
+        e.distance, e.originRelativeAngleDeg,
+        e.edgeDirectionDeg.azimuth, e.edgeDirectionDeg.elevation,
+        e.mode, e.frequencyAtCapture
+    ].join(','));
+    const csvBlob = new Blob([[csvHeader, ...csvRows].join('\n')], { type: 'text/csv' });
+    const csvUrl = URL.createObjectURL(csvBlob);
+    const csvLink = document.createElement('a');
+    csvLink.href = csvUrl; csvLink.download = filename + '.csv'; csvLink.click();
+    URL.revokeObjectURL(csvUrl);
+}
+
+function clearSpecimenLog() {
+    specimenLog = [];
+    measurementCounter = 0;
+    localStorage.removeItem('specimens:log');
+    updateMeasurementLog();
+}
+
+function addMeasurementEntry(nodeA, nodeB) {
+    const p1 = new THREE.Vector3().setFromMatrixPosition(nodeA.matrixWorld);
+    const p2 = new THREE.Vector3().setFromMatrixPosition(nodeB.matrixWorld);
+    const distance = parseFloat(p1.distanceTo(p2).toFixed(4));
+    const originRelativeAngleDeg = parseFloat((p1.angleTo(p2) * (180 / Math.PI)).toFixed(3));
+    const edgeDirectionDeg = computeEdgeDirection(p1, p2);
+    const interiorAnglesAtA = computeInteriorAngles(nodeA, nodeB);
+    const interiorAnglesAtB = computeInteriorAngles(nodeB, nodeA);
+
+    measurementCounter++;
+    const entry = {
+        id: `m-${String(measurementCounter).padStart(4, '0')}`,
+        timestamp: new Date().toISOString(),
+        solid: activeSolidKey,
+        nodeA: { id: nodeA.userData.vertexId || 'vtx-?', position: [parseFloat(p1.x.toFixed(4)), parseFloat(p1.y.toFixed(4)), parseFloat(p1.z.toFixed(4))] },
+        nodeB: { id: nodeB.userData.vertexId || 'vtx-?', position: [parseFloat(p2.x.toFixed(4)), parseFloat(p2.y.toFixed(4)), parseFloat(p2.z.toFixed(4))] },
+        distance,
+        originRelativeAngleDeg,
+        edgeDirectionDeg,
+        interiorAnglesAtA,
+        interiorAnglesAtB,
+        mode: interactionMode,
+        frequencyAtCapture: parseFloat(currentFrequencyHz().toFixed(1))
+    };
+    specimenLog.push(entry);
+    saveSpecimenLog();
+    updateMeasurementLog();
+}
+
+function removeConnection(nodeA, nodeB) {
+    connectionLines = connectionLines.filter(line => {
+        const matches = (line.userData.nodeA === nodeA && line.userData.nodeB === nodeB) || (line.userData.nodeA === nodeB && line.userData.nodeB === nodeA);
+        if (matches) connectionGroup.remove(line);
+        return !matches;
+    });
+    drawStencilViews();
+}
+
+function removeConnectionsForNode(nodeMesh) {
+    connectionLines = connectionLines.filter(line => {
+        const matches = line.userData.nodeA === nodeMesh || line.userData.nodeB === nodeMesh;
+        if (matches) connectionGroup.remove(line);
+        return !matches;
+    });
+    drawStencilViews();
+}
+
+function hasConnection(nodeA, nodeB) {
+    return connectionLines.some(line => (line.userData.nodeA === nodeA && line.userData.nodeB === nodeB) || (line.userData.nodeA === nodeB && line.userData.nodeB === nodeA));
+}
+
+/* ====== CUSTOM Mode Stage 2 — free-space point dragging ====== */
+const transformControls = new TransformControls(camera, renderer.domElement);
+scene.add(transformControls);
+
+let isDraggingPoint = false;
+
+transformControls.addEventListener('dragging-changed', (event) => {
+    isDraggingPoint = event.value;
+    controls.enabled = !event.value;
+    if (!event.value) {
+        refreshMeasurementsForNode(transformControls.object);
+    }
+});
+
+function refreshMeasurementsForNode(nodeMesh) {
+    if (!nodeMesh) return;
+    if (nodeMesh.userData?.isCustomPoint) cacheRestState(nodeMesh, constructionPlaneFill.position);
+    connectionLines.forEach(line => {
+        if (line.userData.nodeA === nodeMesh || line.userData.nodeB === nodeMesh) {
+            addMeasurementEntry(line.userData.nodeA, line.userData.nodeB);
+        }
+    });
+    updateMeasurementDisplay();
+    updateMeasurementLog();
+}
+
+/* ====== RESONANCE Mode (Phase 2) — audio-reactive vertex deformation ====== */
+
+const RESONANCE_RIPPLE_CONSTANT = 0.6;
+const RESONANCE_AMP_SCALE = 0.35;
+const RESONANCE_BASE_AMPLITUDE = 0.06;
+const RESONANCE_BASE_BEAT_HZ = 1.2;
+const NATIVE_VERTEX_CENTER = new THREE.Vector3(0, 0, 0);
+
+function cacheRestState(dot, referenceCenter) {
+    const rest = dot.position.clone();
+    dot.userData.originalPosition = rest;
+    const normal = rest.clone().sub(referenceCenter);
+    if (normal.lengthSq() < 1e-6) normal.set(0, 1, 0); else normal.normalize();
+    dot.userData.normal = normal;
+    dot.userData.restRadius = rest.clone().sub(referenceCenter).length();
+}
+
+function currentWobbleAmplitude() {
+    return audioActive ? audioAmplitude * RESONANCE_AMP_SCALE : RESONANCE_BASE_AMPLITUDE;
+}
+
+function currentBeatFreqScalar() {
+    const hz = audioActive ? beatHz : RESONANCE_BASE_BEAT_HZ;
+    return hz * 2; // tuned multiplier — raw beat Hz alone reads as too slow for a visible wobble
+}
+
+function updateResonanceDeformation(t) {
+    const amp = currentWobbleAmplitude();
+    const freqScalar = currentBeatFreqScalar();
+    const applyWobble = (dot) => {
+        const op = dot.userData.originalPosition;
+        if (!op) return;
+        const normal = dot.userData.normal;
+        const wobble = amp * Math.cos(RESONANCE_RIPPLE_CONSTANT * dot.userData.restRadius - t * freqScalar);
+        dot.position.set(op.x + normal.x * wobble, op.y + normal.y * wobble, op.z + normal.z * wobble);
+    };
+    coreGroup.children.forEach(child => { if (child.userData?.isVertexDot) applyWobble(child); });
+    customPoints.forEach(applyWobble);
+}
+
+function resetAllVerticesToRest() {
+    coreGroup.children.forEach(child => {
+        if (child.userData?.isVertexDot && child.userData.originalPosition) child.position.copy(child.userData.originalPosition);
+    });
+    customPoints.forEach(dot => {
+        if (dot.userData.originalPosition) dot.position.copy(dot.userData.originalPosition);
+    });
+}
+
+let audioContext = null;
+let audioSourceNode = null;
+let micStream = null;
+let analyserL = null, analyserR = null, analyserMono = null;
+let freqDataL = null, freqDataR = null, freqDataMono = null;
+let isStereo = false;
+let audioActive = false;
+let carrierHz = 220, beatHz = RESONANCE_BASE_BEAT_HZ, audioAmplitude = 0;
+
+function ensureAudioContext() {
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    return audioContext;
+}
+
+function teardownAudioGraph() {
+    if (audioSourceNode) {
+        try { audioSourceNode.disconnect(); } catch (e) {}
+        if (typeof audioSourceNode.stop === 'function') { try { audioSourceNode.stop(); } catch (e) {} }
+        audioSourceNode = null;
+    }
+    if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+    }
+    analyserL = null; analyserR = null; analyserMono = null;
+    freqDataL = null; freqDataR = null; freqDataMono = null;
+    isStereo = false;
+    audioActive = false;
+    audioAmplitude = 0;
+    updateResonanceReadout();
+}
+
+function connectAnalysers(sourceNode, channelCount) {
+    const ctx = ensureAudioContext();
+    if (channelCount >= 2) {
+        isStereo = true;
+        const splitter = ctx.createChannelSplitter(2);
+        sourceNode.connect(splitter);
+        analyserL = ctx.createAnalyser();
+        analyserL.fftSize = 2048;
+        analyserR = ctx.createAnalyser();
+        analyserR.fftSize = 2048;
+        splitter.connect(analyserL, 0);
+        splitter.connect(analyserR, 1);
+    } else {
+        isStereo = false;
+        analyserMono = ctx.createAnalyser();
+        analyserMono.fftSize = 2048;
+        sourceNode.connect(analyserMono);
+    }
+    audioActive = true;
+}
+
+async function loadAudioFile(file) {
+    teardownAudioGraph();
+    const ctx = ensureAudioContext();
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.loop = true;
+    audioSourceNode = source;
+    connectAnalysers(source, audioBuffer.numberOfChannels);
+    source.connect(ctx.destination);
+    source.start(0);
+    resonanceReadoutEl.textContent = `PLAYING: ${file.name.toUpperCase()}`;
+}
+
+async function startMicInput() {
+    teardownAudioGraph();
+    const ctx = ensureAudioContext();
+    let stream;
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 2 } });
+    } catch (err) {
+        resonanceReadoutEl.textContent = 'MIC PERMISSION DENIED — USE FILE UPLOAD';
+        return;
+    }
+    micStream = stream;
+    const source = ctx.createMediaStreamSource(stream);
+    audioSourceNode = source;
+    const trackSettings = stream.getAudioTracks()[0]?.getSettings?.() || {};
+    const channelCount = trackSettings.channelCount || 1;
+    connectAnalysers(source, channelCount);
+}
+
+function stopAudioSource() {
+    teardownAudioGraph();
+}
+
+function readDominantFrequency(analyser, freqData) {
+    analyser.getByteFrequencyData(freqData);
+    let maxVal = 0, maxIdx = 0, sum = 0;
+    for (let i = 0; i < freqData.length; i++) {
+        const v = freqData[i];
+        sum += v;
+        if (v > maxVal) { maxVal = v; maxIdx = i; }
+    }
+    const nyquist = audioContext.sampleRate / 2;
+    const hz = (maxIdx / freqData.length) * nyquist;
+    const amplitude = (sum / freqData.length) / 255;
+    return { hz, amplitude };
+}
+
+const AUDIO_SMOOTHING = 0.15;
+
+function updateAudioAnalysis() {
+    if (!audioActive) return;
+    let newCarrier, newBeat, newAmp;
+    if (isStereo && analyserL && analyserR) {
+        if (!freqDataL) freqDataL = new Uint8Array(analyserL.frequencyBinCount);
+        if (!freqDataR) freqDataR = new Uint8Array(analyserR.frequencyBinCount);
+        const l = readDominantFrequency(analyserL, freqDataL);
+        const r = readDominantFrequency(analyserR, freqDataR);
+        newCarrier = (l.hz + r.hz) / 2;
+        newBeat = Math.abs(l.hz - r.hz);
+        newAmp = (l.amplitude + r.amplitude) / 2;
+    } else if (analyserMono) {
+        if (!freqDataMono) freqDataMono = new Uint8Array(analyserMono.frequencyBinCount);
+        const m = readDominantFrequency(analyserMono, freqDataMono);
+        newCarrier = m.hz;
+        newBeat = beatHz;
+        newAmp = m.amplitude;
+    } else {
+        return;
+    }
+    carrierHz += (newCarrier - carrierHz) * AUDIO_SMOOTHING;
+    beatHz += (newBeat - beatHz) * AUDIO_SMOOTHING;
+    audioAmplitude += (newAmp - audioAmplitude) * AUDIO_SMOOTHING;
+    updateResonanceReadout();
+}
+
+function normalizeCarrier(hz) {
+    return Math.max(0, Math.min(1, (hz - 110) / 660));
+}
+
+function currentFrequencyHz() {
+    return audioActive ? carrierHz : (110 + frequency * 660);
+}
+
+function updateResonanceReadout() {
+    if (!resonanceReadoutEl) return;
+    if (!audioActive) {
+        resonanceReadoutEl.textContent = 'NO AUDIO SOURCE — DIAL DRIVEN';
+        return;
+    }
+    const monoTag = isStereo ? '' : ' · MONO FALLBACK';
+    resonanceReadoutEl.innerHTML = `CARRIER: <span>${carrierHz.toFixed(1)} Hz</span> · BEAT: <span>${beatHz.toFixed(2)} Hz</span> · AMP: <span>${(audioAmplitude * 100).toFixed(0)}%</span>${monoTag}`;
+}
+
+const resonanceControlEl = document.getElementById('resonance-control');
+const resonanceFileInput = document.getElementById('resonance-file-input');
+const resonanceMicBtn = document.getElementById('resonance-mic-btn');
+const resonanceStopBtn = document.getElementById('resonance-stop-btn');
+const resonanceReadoutEl = document.getElementById('resonance-readout');
+
+resonanceFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) loadAudioFile(file);
+});
+
+resonanceMicBtn.addEventListener('click', () => {
+    if (micStream) {
+        teardownAudioGraph();
+    } else {
+        startMicInput();
+    }
+});
+
+resonanceStopBtn.addEventListener('click', stopAudioSource);
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+renderer.domElement.addEventListener('pointermove', e => {
+    if (isDraggingPoint) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const dist = raycaster.ray.distanceToPoint(coreGroup.position);
+    isHovering = dist < 2.2;
+    flowerTargetScale = isHovering ? 1.0 : 0.01;
+    handTargetOpacity = isHovering ? 0.45 : 0;
+
+    clearHighlights();
+    previewLine.visible = false;
+    const dotHits = raycaster.intersectObjects([...coreGroup.children, ...customPoints], false);
+    const vertexHit = dotHits.find(i => i.object.userData?.isVertexDot || i.object.name === 'vertex-dot');
+    if (vertexHit) {
+        const dot = vertexHit.object;
+        highlightDot(dot);
+        if (interactionMode === 'CONNECT' && activeSelectedNodes.length === 1 && activeSelectedNodes[0] !== dot && !hasConnection(activeSelectedNodes[0], dot)) {
+            const p1 = new THREE.Vector3();
+            const p2 = new THREE.Vector3();
+            activeSelectedNodes[0].getWorldPosition(p1);
+            dot.getWorldPosition(p2);
+            previewLine.geometry.setFromPoints([p1, p2]);
+            previewLine.computeLineDistances();
+            previewLine.visible = true;
+            document.querySelector('.footer-text').innerHTML = `<span style="color:#4ade80">PREVIEW LINK</span> // CLICK TO CONNECT NODES`;
+        }
+    }
+    const lineHits = raycaster.intersectObjects(connectionLines, false);
+    if (lineHits.length > 0) {
+        highlightConnection(lineHits[0].object);
+        if (interactionMode === 'DISCONNECT') {
+            document.querySelector('.footer-text').innerHTML = `<span style="color:#4ade80">DISCONNECT MODE</span> // CLICK LINK TO REMOVE IT`;
+        }
+        if (interactionMode === 'SKETCH' && sketchAnchorNode) {
+            document.querySelector('.footer-text').innerHTML = `<span style="color:#7c3aed">SKETCH MODE</span> // CLICK SECOND NODE`;
+        }
+    }
+});
+renderer.domElement.addEventListener('mouseleave', () => {
+    isHovering = false;
+    flowerTargetScale = 0.01;
+    handTargetOpacity = 0;
+    clearHighlights();
+    previewLine.visible = false;
+});
+
+modeButtons.forEach(button => {
+    button.addEventListener('click', () => setInteractionMode(button.dataset.mode));
+});
+
+document.addEventListener('keydown', e => {
+    if (e.key === '1') setInteractionMode('VIEW');
+    if (e.key === '2') setInteractionMode('CONNECT');
+    if (e.key === '3') setInteractionMode('DISCONNECT');
+    if (e.key === '4') setInteractionMode('CUT');
+    if (e.key === '5') setInteractionMode('SKETCH');
+    if (e.key === '6') setInteractionMode('CUSTOM');
+    if (e.key === '7') setInteractionMode('RESONANCE');
+});
+
+loadSolid('dodeca');
+
+/* ====== Frequency Dial Controls ====== */
+const freqKnob = document.getElementById('freq-knob');
+const freqFill = document.getElementById('freq-fill');
+const freqValueEl = document.getElementById('freq-value');
+const sliderTrack = document.getElementById('slider-track');
+let isDragging = false;
+
+function updateFrequency(val) {
+    frequency = Math.max(0, Math.min(1, val));
+    const pct = frequency * 100;
+    freqFill.style.width = pct + '%';
+    freqKnob.style.left = pct + '%';
+    freqValueEl.textContent = (110 + frequency * 660).toFixed(1) + ' Hz';
+    freqKnob.setAttribute('aria-valuenow', Math.round(pct));
+}
+updateFrequency(0.5);
+
+freqKnob.addEventListener('mousedown', e => { isDragging = true; e.preventDefault(); });
+document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const r = sliderTrack.getBoundingClientRect();
+    updateFrequency((e.clientX - r.left) / r.width);
+});
+document.addEventListener('mouseup', () => isDragging = false);
+
+freqKnob.addEventListener('touchstart', e => { isDragging = true; e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const r = sliderTrack.getBoundingClientRect();
+    updateFrequency((e.touches[0].clientX - r.left) / r.width);
+}, { passive: true });
+document.addEventListener('touchend', () => isDragging = false);
+
+/* ====== Catalog Input Processor ====== */
+const labels = {
+    tetra: { main: "TETRAHEDRON", sub: "4 FACES / 6 EDGES / 4 VERTICES" },
+    hexa: { main: "HEXAHEDRON", sub: "6 FACES / 12 EDGES / 8 VERTICES" },
+    octa: { main: "OCTAHEDRON", sub: "8 FACES / 12 EDGES / 6 VERTICES" },
+    icosa: { main: "ICOSAHEDRON", sub: "20 FACES / 30 EDGES / 12 VERTICES" },
+    dodeca: { main: "DODECAHEDRON", sub: "12 FACES / 30 EDGES / 20 VERTICES" },
+    meta: { main: "MERKABA STAR", sub: "8 FACES / 24 EDGES / 8 VERTICES" }
+};
+
+const solidReadouts = {
+    tetra: ["Net Layout (A4 optimized)", "4", "6", "4"],
+    hexa: ["Standard Unfolded Plan", "6", "12", "8"],
+    octa: ["Bipyramidal Layout", "8", "12", "6"],
+    icosa: ["Triangulated Layout", "20", "30", "12"],
+    dodeca: ["Net Layout (A4 optimized)", "12", "30", "20"],
+    meta: ["Interlocking Star Layout", "8", "24", "8"]
+};
+
+document.querySelectorAll('.catalog-item').forEach(item => {
+    item.addEventListener('click', () => {
+        document.querySelectorAll('.catalog-item').forEach(i => { i.classList.remove('active'); i.setAttribute('aria-selected','false'); });
+        item.classList.add('active');
+        item.setAttribute('aria-selected','true');
+        
+        const solidKey = item.getAttribute('data-solid');
+        
+        loadSolid(solidKey);
+        
+        document.querySelector('.center-label-main').textContent = labels[solidKey].main;
+        document.querySelector('.center-label-sub').textContent = labels[solidKey].sub;
+        
+        const activeRead = solidReadouts[solidKey];
+        document.querySelector('.stencil-readout').innerHTML = `
+            PROJECTION TYPE: <span>${activeRead[0]}</span><br>
+            SCALE: <span>1:1.618</span> &nbsp;|&nbsp; UNIT: <span>φ-relative</span><br>
+            FACES: <span>${activeRead[1]}</span> &nbsp;|&nbsp; EDGES: <span>${activeRead[2]}</span> &nbsp;|&nbsp; VERTICES: <span>${activeRead[3]}</span>
+        `;
+    });
+});
+
+/* ====== Static Blueprint Draft Canvas Engraving ====== */
+function drawGrid(ctx, w, h) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < w; x += 10) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+    for (let y = 0; y < h; y += 10) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+}
+function drawPentagon(ctx, cx, cy, r, rot = -Math.PI/2) {
+    const verts = [];
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+        const a = rot + (i/5)*Math.PI*2;
+        const x = cx + Math.cos(a)*r, y = cy + Math.sin(a)*r;
+        verts.push({x,y});
+        i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.closePath(); ctx.stroke(); return verts;
+}
+(function drawNet() {
+    const c = document.getElementById('net-canvas'); const ctx = c.getContext('2d'); const w = c.width, h = c.height;
+    ctx.clearRect(0,0,w,h); drawGrid(ctx,w,h); ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 0.8;
+    const R = 15, cx = w*0.42, cy = h/2; drawPentagon(ctx, cx, cy, R); ctx.fillStyle = 'rgba(212,160,60,0.06)'; ctx.fill();
+    for (let i = 0; i < 5; i++) { const a = -Math.PI/2 + (i/5)*Math.PI*2; const d = R * (1 + Math.cos(Math.PI/5)); drawPentagon(ctx, cx + Math.cos(a)*d, cy + Math.sin(a)*d, R, a + Math.PI); }
+    ctx.fillStyle = 'rgba(212,160,60,0.5)'; ctx.font = '7px "IBM Plex Mono",monospace'; ctx.fillText('STRUCTURAL STENCIL PLAN', w - 105, h - 8);
+})();
+(function drawOrtho() {
+    const c = document.getElementById('ortho-canvas'); const ctx = c.getContext('2d'); const w = c.width, h = c.height;
+    ctx.clearRect(0,0,w,h); drawGrid(ctx,w,h); const cx = w/2, cy = h/2, oR = 38;
+    ctx.strokeStyle = 'rgba(212,160,60,0.1)'; ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,h); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(w,cy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 0.8; ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI/2 + (i/10)*Math.PI*2; const x = cx + Math.cos(a)*oR, y = cy + Math.sin(a)*oR; i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); } ctx.closePath(); ctx.stroke();
+    ctx.fillStyle = 'rgba(212,160,60,0.7)'; ctx.beginPath(); ctx.arc(cx, cy, 1.5, 0, Math.PI*2); ctx.fill();
+})();
+(function drawDetail() {
+    const c = document.getElementById('detail-canvas'); const ctx = c.getContext('2d'); const w = c.width, h = c.height;
+    ctx.clearRect(0,0,w,h); drawGrid(ctx,w,h); const R = 46, pcx = 85, pcy = h/2;
+    ctx.fillStyle = 'rgba(212,160,60,0.05)'; ctx.beginPath(); const verts = []; for (let i = 0; i < 5; i++) { const a = -Math.PI/2 + (i/5)*Math.PI*2; const x = pcx + Math.cos(a)*R, y = pcy + Math.sin(a)*R; verts.push({x,y}); i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); } ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.65)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.fillStyle = 'rgba(212,160,60,0.7)'; ctx.beginPath(); ctx.arc(pcx,pcy,1.5,0,Math.PI*2); ctx.fill();
+    const rx = 175; let ry = 22; const data = [['RATIO','1:1.618'],['AXIAL ROTATION','Active']];
+    data.forEach(([label, val]) => { ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '7px "IBM Plex Mono",monospace'; ctx.fillText(label, rx, ry); ctx.fillStyle = 'rgba(212,160,60,0.85)'; ctx.font = '8px "IBM Plex Mono",monospace'; ctx.fillText(val, rx, ry+10); ry += 32; });
+})();
+
+/* ====== Raycasting Node Selector ====== */
+const stencilPanelEl = document.getElementById('stencil-panel');
+let activeProjectionView = 'net';
+
+function cycleStencilProjection() {
+    const views = ['net', 'ortho', 'detail'];
+    const idx = views.indexOf(activeProjectionView);
+    activeProjectionView = views[(idx + 1) % views.length];
+    setStencilProjection(activeProjectionView);
+}
+
+function handleScenePointerDown(e) {
+    if (isDraggingPoint) return;
+    if (e.target instanceof Element && (e.target.closest('.stencil-panel') || e.target.closest('.hud-panel'))) return;
+
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    const lineIntersects = raycaster.intersectObjects(connectionLines);
+    const clickedConnection = lineIntersects[0];
+    if (clickedConnection) {
+        const line = clickedConnection.object;
+        if (interactionMode === 'DISCONNECT') {
+            removeConnection(line.userData.nodeA, line.userData.nodeB);
+            updateMeasurementLog();
+            updateMeasurementDisplay();
+            return;
+        }
+    }
+
+    const intersects = raycaster.intersectObjects([...coreGroup.children, ...customPoints]);
+    const clickedDot = intersects.find(i => i.object.userData?.isVertexDot || i.object.name === 'vertex-dot');
+
+    if (clickedDot) {
+        const dotMesh = clickedDot.object;
+
+        if (interactionMode === 'VIEW') {
+            setActiveSelection(dotMesh);
+            updateMeasurementDisplay();
+            return;
+        }
+
+        if (interactionMode === 'DISCONNECT') {
+            removeConnectionsForNode(dotMesh);
+            setActiveSelection(null);
+            updateMeasurementDisplay();
+            updateMeasurementLog();
+            return;
+        }
+
+        if (interactionMode === 'CUT') {
+            const worldPos = new THREE.Vector3();
+            dotMesh.getWorldPosition(worldPos);
+            cutPlane.constant = -worldPos.y;
+            cutPlaneMesh.position.y = worldPos.y;
+            cutPlaneMesh.visible = true;
+            if (currentMesh) currentMesh.material.clippingPlanes = [cutPlane];
+            if (currentWireframe) currentWireframe.material.clippingPlanes = [cutPlane];
+            coreGroup.children.forEach(child => { if (child.userData?.isVertexDot) child.material.clippingPlanes = [cutPlane]; });
+            document.querySelector('.footer-text').innerHTML = `<span style="color:#7c3aed">CUT MODE</span> // PLANE SET AT Y=${worldPos.y.toFixed(2)}`;
+            return;
+        }
+
+        if (interactionMode === 'SKETCH') {
+            if (!sketchAnchorNode) {
+                sketchAnchorNode = dotMesh;
+                setActiveSelection(dotMesh);
+                document.querySelector('.footer-text').innerHTML = `<span style="color:#7c3aed">SKETCH MODE</span> // SELECT SECOND NODE`;
+                return;
+            }
+            if (sketchAnchorNode !== dotMesh) {
+                const p1 = new THREE.Vector3();
+                const p2 = new THREE.Vector3();
+                sketchAnchorNode.getWorldPosition(p1);
+                dotMesh.getWorldPosition(p2);
+                const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+                const line = new THREE.Line(lineGeo, sketchLineMaterial.clone());
+                line.userData.nodeA = sketchAnchorNode;
+                line.userData.nodeB = dotMesh;
+                sketchGroup.add(line);
+                sketchLines.push(line);
+                addMeasurementEntry(sketchAnchorNode, dotMesh);
+                lastMeasurementNodes = [sketchAnchorNode, dotMesh];
+                updateMeasurementDisplay();
+                drawStencilViews();
+                document.querySelector('.footer-text').innerHTML = `<span style="color:#7c3aed">SKETCH EDGE</span> // CREATED BETWEEN NODES`;
+            }
+            sketchAnchorNode = null;
+            setActiveSelection(null);
+            return;
+        }
+
+        if (interactionMode === 'CUSTOM') {
+            if (activeSelectedNodes.length === 0) {
+                setActiveSelection(dotMesh);
+                if (dotMesh.userData.isCustomPoint) transformControls.attach(dotMesh);
+                document.querySelector('.footer-text').innerHTML = `<span style="color:#4ade80">POINT SELECTED</span> // DRAG GIZMO TO MOVE, OR CLICK ANOTHER POINT TO CONNECT`;
+                return;
+            }
+            const anchorNode = activeSelectedNodes[0];
+            if (anchorNode !== dotMesh) {
+                if (!hasConnection(anchorNode, dotMesh)) {
+                    const p1 = new THREE.Vector3();
+                    const p2 = new THREE.Vector3();
+                    anchorNode.getWorldPosition(p1);
+                    dotMesh.getWorldPosition(p2);
+                    const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+                    const line = new THREE.Line(lineGeo, connectionLineMaterial.clone());
+                    line.userData.nodeA = anchorNode;
+                    line.userData.nodeB = dotMesh;
+                    connectionGroup.add(line);
+                    connectionLines.push(line);
+                    addMeasurementEntry(anchorNode, dotMesh);
+                    drawStencilViews();
+                }
+                lastMeasurementNodes = [anchorNode, dotMesh];
+                transformControls.detach();
+                setActiveSelection(null);
+                updateMeasurementDisplay();
+            } else {
+                transformControls.detach();
+                setActiveSelection(null);
+            }
+            return;
+        }
+
+        if (activeSelectedNodes.length === 0) {
+            setActiveSelection(dotMesh);
+            updateMeasurementDisplay();
+            return;
+        }
+
+        const anchorNode = activeSelectedNodes[0];
+        if (!hasConnection(anchorNode, dotMesh)) {
+            const p1 = new THREE.Vector3();
+            const p2 = new THREE.Vector3();
+            anchorNode.getWorldPosition(p1);
+            dotMesh.getWorldPosition(p2);
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+            const line = new THREE.Line(lineGeo, connectionLineMaterial.clone());
+            line.userData.nodeA = anchorNode;
+            line.userData.nodeB = dotMesh;
+            connectionGroup.add(line);
+            connectionLines.push(line);
+            addMeasurementEntry(anchorNode, dotMesh);
+            drawStencilViews();
+        }
+
+        lastMeasurementNodes = [anchorNode, dotMesh];
+        setActiveSelection(dotMesh);
+        updateMeasurementDisplay();
+    }
+
+    if (!clickedDot && interactionMode === 'CUSTOM') {
+        const planeHits = raycaster.intersectObject(constructionPlaneFill);
+        if (planeHits.length > 0) {
+            const worldPos = planeHits[0].point;
+            placeCustomPoint(worldPos);
+            drawStencilViews();
+            document.querySelector('.footer-text').innerHTML = `<span style="color:#4ade80">POINT PLACED</span> // ${customPoints.length} POINT${customPoints.length !== 1 ? 'S' : ''} — CLICK DOTS TO CONNECT`;
+        }
+    }
+}
+
+renderer.domElement.addEventListener('pointerdown', handleScenePointerDown);
+
+if (stencilPanelEl) {
+    stencilPanelEl.addEventListener('click', (e) => {
+        if (e.target.closest('.blueprint-canvas') || e.target.closest('.stencil-body')) {
+            cycleStencilProjection();
+        }
+    });
+}
+
+setStencilProjection(activeProjectionView);
+
+/* ====== Main Continuous Animation Loop ====== */
+const clock = new THREE.Clock();
+
+function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+
+    if (lastMeasurementNodes.length === 2) {
+        const p1 = new THREE.Vector3().setFromMatrixPosition(lastMeasurementNodes[0].matrixWorld);
+        const p2 = new THREE.Vector3().setFromMatrixPosition(lastMeasurementNodes[1].matrixWorld);
+
+        const posArr = measurementLine.geometry.attributes.position;
+        posArr.setXYZ(0, p1.x, p1.y, p1.z);
+        posArr.setXYZ(1, p2.x, p2.y, p2.z);
+        posArr.needsUpdate = true;
+        measurementLine.visible = true;
+
+        const distance = p1.distanceTo(p2);
+        const angleRad = p1.angleTo(p2);
+        const angleDeg = angleRad * (180 / Math.PI);
+
+        document.querySelector('.footer-text').innerHTML = `
+            <span style="color:#4ade80">LINK ACTIVE</span> // DISTANCE: <span style="color:#4ade80">${distance.toFixed(4)} φ-units</span> 
+            &nbsp;|&nbsp; ANGLE: <span style="color:#4ade80">${angleDeg.toFixed(2)}°</span>
+        `;
+    } else if (activeSelectedNodes.length === 1) {
+        measurementLine.visible = false;
+        document.querySelector('.footer-text').innerHTML = `<span style="color:#4ade80">NODE SELECTED</span> // CHOOSE A SECOND NODE TO LINK...`;
+    } else {
+        measurementLine.visible = false;
+        document.querySelector('.footer-text').innerHTML = `<span>CLICK</span> DOTS TO MEASURE / <span>CONNECT</span> SHAPES`;
+    }
+
+    connectionLines.forEach(line => {
+        const pos = line.geometry.attributes.position;
+        const p1 = new THREE.Vector3();
+        const p2 = new THREE.Vector3();
+        line.userData.nodeA.getWorldPosition(p1);
+        line.userData.nodeB.getWorldPosition(p2);
+        pos.setXYZ(0, p1.x, p1.y, p1.z);
+        pos.setXYZ(1, p2.x, p2.y, p2.z);
+        pos.needsUpdate = true;
+    });
+
+    drawStencilViews();
+
+    updateAudioAnalysis();
+    const driverValue = audioActive ? normalizeCarrier(carrierHz) : frequency;
+    if (interactionMode === 'RESONANCE') updateResonanceDeformation(t);
+
+    coreGroup.rotation.y = t * 0.12;
+    coreGroup.rotation.x = Math.sin(t * 0.08) * 0.08;
+
+    const vAmp = driverValue * 0.025;
+    const vFreq = 2 + driverValue * 10;
+    coreGroup.position.y = 1.5 + Math.sin(t * vFreq) * vAmp;
+
+    if (currentWireframe && coreMat && interactionMode !== 'CUSTOM') {
+        edgesMat.opacity = 0.4 + (0.5 + Math.sin(t * vFreq) * 0.5) * 0.5 * (0.3 + driverValue * 0.7);
+        coreMat.emissiveIntensity = 0.03 + driverValue * 0.1 * (0.5 + Math.sin(t * vFreq) * 0.5);
+    }
+
+    flowerCurrentScale += (flowerTargetScale - flowerCurrentScale) * 0.04;
+    const fp = flowerCurrentScale + (isHovering ? Math.sin(t * 1.8) * 0.04 : 0);
+    flowerGroup.scale.setScalar(Math.max(0.01, fp));
+    flowerGroup.rotation.y = t * 0.08;
+    flowerGroup.rotation.x = t * 0.04;
+    const tfo = isHovering ? 0.1 : 0;
+    flowerGroup.children.forEach(c => { if (c.material) c.material.opacity += (tfo - c.material.opacity) * 0.04; });
+
+    handCurrentOpacity += (handTargetOpacity - handCurrentOpacity) * 0.025;
+    handMat.opacity = handCurrentOpacity;
+
+    touchDots.forEach((td, i) => {
+        td.mat.opacity = handCurrentOpacity * (0.4 + Math.sin(t * 3.5 + i * 1.2) * 0.6);
+        td.mesh.scale.setScalar(1 + Math.sin(t * 3.5 + i * 1.2) * 0.4);
+    });
+
+    connLines.forEach((line, i) => {
+        line.material.opacity = handCurrentOpacity * 0.3 * (0.5 + Math.sin(t * 3 + i) * 0.5);
+        if (uniqueVerts.length > 0) {
+            const posArr = line.geometry.attributes.position;
+            const tip = touchDots[i].tip;
+            posArr.setXYZ(0, tip.x, tip.y, tip.z);
+
+            const vi = (i * 3) % uniqueVerts.length;
+            const targetWorldPos = uniqueVerts[vi].clone().applyMatrix4(currentMesh.matrixWorld);
+
+            handGroup.worldToLocal(targetWorldPos);
+            posArr.setXYZ(1, targetWorldPos.x, targetWorldPos.y, targetWorldPos.z);
+            posArr.needsUpdate = true;
+        }
+    });
+
+    if (handCurrentOpacity > 0.005) {
+        handGroup.position.x = 1.3 + Math.sin(t * 0.4) * 0.08;
+        handGroup.position.y = 0.8 + Math.sin(t * 0.6) * 0.04;
+    }
+
+    const pp = pGeo.attributes.position;
+    for (let i = 0; i < pCount; i++) {
+        pp.array[i*3] += pVel[i].x; pp.array[i*3+1] += pVel[i].y; pp.array[i*3+2] += pVel[i].z;
+        if (pp.array[i*3+1] > 9) { pp.array[i*3] = (Math.random()-0.5)*22; pp.array[i*3+1] = -0.5; pp.array[i*3+2] = (Math.random()-0.5)*22; }
+    }
+    pp.needsUpdate = true;
+
+    shaftMat.opacity = 0.01 + Math.sin(t * 0.25) * 0.004;
+    lightShaft.rotation.y = Math.sin(t * 0.08) * 0.04;
+    frameMat.opacity = 0.1 + Math.sin(t * 0.4) * 0.025;
+    groundGlow.intensity = 2 + Math.sin(t * vFreq) * 0.8 * driverValue;
+
+    controls.update();
+    renderer.render(scene, camera);
+}
+animate();
+
+clearConnectionsBtn.addEventListener('click', () => {
+    clearConnectionLines();
+    lastMeasurementNodes = [];
+    updateMeasurementDisplay();
+});
+
+document.getElementById('export-specimen-btn').addEventListener('click', exportSpecimenLog);
+
+document.getElementById('clear-data-btn').addEventListener('click', clearSpecimenLog);
+
+window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
