@@ -61,7 +61,7 @@ body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Mono',monospace;
 .freq-knob:active{cursor:grabbing}
 .freq-value{text-align:center;margin-top:6px;font-size:10px;color:var(--accent);font-family:'Orbitron',sans-serif;letter-spacing:2px}
 .resonance-control{padding:14px;border-top:1px solid var(--border);display:none}
-.resonance-source-row{display:flex;gap:6px;margin-bottom:8px}
+.resonance-source-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .resonance-file-label{background:transparent;border:1px solid var(--accent-dim);color:var(--muted);font-size:7px;letter-spacing:1.5px;padding:4px 7px;cursor:pointer;text-transform:uppercase;flex:1;text-align:center}
 .resonance-file-label:hover{color:var(--fg);border-color:var(--accent)}
 .resonance-readout{font-size:7px;letter-spacing:1px;color:var(--muted);line-height:1.7;text-transform:uppercase}
@@ -179,6 +179,8 @@ body{background:var(--bg);color:var(--fg);font-family:'IBM Plex Mono',monospace;
                 <input type="file" id="resonance-file-input" accept="audio/*" style="display:none">
                 <button class="resonance-file-label" id="resonance-mic-btn" type="button"><i class="fas fa-microphone"></i> MIC</button>
                 <button class="resonance-file-label" id="resonance-stop-btn" type="button"><i class="fas fa-stop"></i> STOP</button>
+                <button class="resonance-file-label" id="resonance-mode-btn" type="button"><i class="fas fa-atom"></i> MODE: RADIAL</button>
+                <button class="resonance-file-label" id="resonance-bridge-btn" type="button"><i class="fas fa-link"></i> BRIDGE</button>
             </div>
             <div class="resonance-readout" id="resonance-readout">NO AUDIO SOURCE — DIAL DRIVEN</div>
         </div>
@@ -374,9 +376,18 @@ scene.add(coreGroup);
 
 let currentMesh, currentWireframe;
 let uniqueVerts = [];
+let vertexDots = [];        // uniqueVerts[i] <-> vertexDots[i]
+let meshVertexMap = [];     // geo position index -> uniqueVerts index
+let wireframeVertexMap = []; // EdgesGeometry position index -> uniqueVerts index
+let edgeList = [];          // [vertexIndexA, vertexIndexB] per edge, derived from wireframeVertexMap
+let edgeBowDirections = []; // per-edge unit vector, perpendicular to that edge, cached at load time
+let cymaticEdgeGroup = null; // v0.4 — one THREE.Line per edge, interior standing-wave points
+const EDGE_SUBDIVISIONS = 20;
+const EDGE_AMP_SCALE = 0.5;
 const vertDotGeo = new THREE.SphereGeometry(0.028, 8, 8);
 const vertDotMat = new THREE.MeshBasicMaterial({ color: 0xd4a03c });
-const edgesMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0.65 });
+const edgesMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0.65, vertexColors: true });
+const cymaticEdgeMat = new THREE.LineBasicMaterial({ color: 0xd4a03c, transparent: true, opacity: 0.75, vertexColors: true });
 const coreMat = new THREE.MeshPhysicalMaterial({
     color: 0xd4a03c, transparent: true, opacity: 0.06,
     roughness: 0.1, metalness: 0.3, side: THREE.DoubleSide,
@@ -405,15 +416,18 @@ function loadSolid(key) {
     coreGroup.add(currentWireframe);
     
     uniqueVerts = [];
+    vertexDots = [];
     const posArr = geo.attributes.position;
-    const seen = new Set();
-    
+    const seen = new Map(); // key -> uniqueVerts index, reused below for the wireframe lookup
+    meshVertexMap = new Array(posArr.count);
+
     for (let i = 0; i < posArr.count; i++) {
         const k = `${posArr.getX(i).toFixed(2)},${posArr.getY(i).toFixed(2)},${posArr.getZ(i).toFixed(2)}`;
-        if (!seen.has(k)) {
-            seen.add(k);
+        let vertexIndex = seen.get(k);
+        if (vertexIndex === undefined) {
+            vertexIndex = uniqueVerts.length;
+            seen.set(k, vertexIndex);
             const v = new THREE.Vector3(posArr.getX(i), posArr.getY(i), posArr.getZ(i));
-            const vertexIndex = uniqueVerts.length;
             uniqueVerts.push(v);
 
             const dot = new THREE.Mesh(vertDotGeo, new THREE.MeshBasicMaterial({ color: 0xd4a03c }));
@@ -423,8 +437,48 @@ function loadSolid(key) {
             dot.position.copy(v);
             cacheRestState(dot, NATIVE_VERTEX_CENTER);
             coreGroup.add(dot);
+            vertexDots.push(dot);
         }
+        meshVertexMap[i] = vertexIndex;
     }
+
+    // EdgesGeometry endpoints coincide exactly with geo's vertices, so the same rounded-key match resolves them.
+    const wfPosArr = currentWireframe.geometry.attributes.position;
+    wireframeVertexMap = new Array(wfPosArr.count);
+    for (let i = 0; i < wfPosArr.count; i++) {
+        const k = `${wfPosArr.getX(i).toFixed(2)},${wfPosArr.getY(i).toFixed(2)},${wfPosArr.getZ(i).toFixed(2)}`;
+        wireframeVertexMap[i] = seen.get(k);
+    }
+
+    // Starts all-white so vertexColors * material.color == plain gold until harmonic mode writes real values.
+    const wfColorArr = new Float32Array(wfPosArr.count * 3).fill(1);
+    currentWireframe.geometry.setAttribute('color', new THREE.BufferAttribute(wfColorArr, 3));
+
+    buildCymaticEdgeGroup();
+}
+
+// v0.4 — edge list needs no new detection: EdgesGeometry pairs consecutive points as one segment
+// each, and wireframeVertexMap already resolves each of those points to a uniqueVerts index.
+function buildCymaticEdgeGroup() {
+    if (cymaticEdgeGroup) coreGroup.remove(cymaticEdgeGroup);
+    cymaticEdgeGroup = new THREE.Group();
+
+    edgeList = [];
+    edgeBowDirections = [];
+    for (let i = 0; i < wireframeVertexMap.length; i += 2) {
+        const a = wireframeVertexMap[i], b = wireframeVertexMap[i + 1];
+        edgeList.push([a, b]);
+        edgeBowDirections.push(computeEdgeBowDirection(uniqueVerts[a], uniqueVerts[b], NATIVE_VERTEX_CENTER));
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(EDGE_SUBDIVISIONS * 3), 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(EDGE_SUBDIVISIONS * 3).fill(1), 3));
+        const line = new THREE.Line(geo, cymaticEdgeMat);
+        cymaticEdgeGroup.add(line);
+    }
+
+    cymaticEdgeGroup.visible = false;
+    coreGroup.add(cymaticEdgeGroup);
 }
 
 /* ====== Flower of Life Background ====== */
@@ -1118,6 +1172,53 @@ const RESONANCE_BASE_AMPLITUDE = 0.06;
 const RESONANCE_BASE_BEAT_HZ = 1.2;
 const NATIVE_VERTEX_CENTER = new THREE.Vector3(0, 0, 0);
 
+/* ====== Cymatic Resonance (v0.3) — spherical-harmonic deformation basis ====== */
+
+// Real solid harmonics, closed-form in normalized (x,y,z) — no acos/atan2, no pole singularity.
+function harmonicValue(l, m, v) {
+    const { x, y, z } = v;
+    if (l === 1 && m === 0) return z;
+    if (l === 2 && m === 0) return 1.5 * z * z - 0.5;
+    if (l === 2 && m === 2) return x * x - y * y;
+    if (l === 3 && m === 0) return 2.5 * z * z * z - 1.5 * z;
+    if (l === 3 && m === 2) return z * (x * x - y * y);
+    if (l === 4 && m === 4) return x * x * x * x - 6 * x * x * y * y + y * y * y * y;
+    return 0;
+}
+
+// Peak |harmonicValue| on the unit sphere per mode (analytic, confirmed by Monte Carlo sampling).
+// Without this, (3,2) tops out near 0.385 while every other mapped mode reaches 1.0 — 852 Hz would
+// visibly wobble/glow at under half the strength of the other frequencies for reasons that have
+// nothing to do with the audio, just an artifact of which polynomial got assigned to it.
+const HARMONIC_MODE_PEAK = { '1,0': 1, '2,0': 1, '2,2': 1, '3,0': 1, '3,2': 2 * Math.sqrt(3) / 9, '4,4': 1 };
+
+function normalizedHarmonicValue(l, m, v) {
+    return harmonicValue(l, m, v) / (HARMONIC_MODE_PEAK[`${l},${m}`] || 1);
+}
+
+// [INVENTED] mapping — no physical law ties a given Hz to a specific (l,m) mode.
+// harmonicValue() itself is [PHYSICS]; this table is an artistic assignment, not a derived one.
+const CARRIER_HARMONIC_MODES = {
+    396: { l: 1, m: 0 },
+    417: { l: 1, m: 0 },
+    528: { l: 2, m: 0 },
+    639: { l: 2, m: 2 },
+    741: { l: 3, m: 0 },
+    852: { l: 3, m: 2 },
+    963: { l: 4, m: 4 },
+};
+
+function nearestHarmonicMode(hz) {
+    let best = null, bestDist = Infinity;
+    for (const key in CARRIER_HARMONIC_MODES) {
+        const dist = Math.abs(hz - Number(key));
+        if (dist < bestDist) { bestDist = dist; best = CARRIER_HARMONIC_MODES[key]; }
+    }
+    return best || { l: 2, m: 0 };
+}
+
+let deformationMode = 'radial'; // 'radial' (v0.2, unchanged) | 'harmonic' (v0.3)
+
 function cacheRestState(dot, referenceCenter) {
     const rest = dot.position.clone();
     dot.userData.originalPosition = rest;
@@ -1136,18 +1237,154 @@ function currentBeatFreqScalar() {
     return hz * 2; // tuned multiplier — raw beat Hz alone reads as too slow for a visible wobble
 }
 
+// carrierHz (not beatHz) drives harmonic mode — it's the value that actually varies per Solfeggio tone.
+// normalizeCarrier()/currentFrequencyHz() are defined further down but hoisted (function declarations).
+function currentCarrierFreqScalar() {
+    return 0.8 + normalizeCarrier(currentFrequencyHz()) * 2.7; // same order of magnitude as the radial default
+}
+
 function updateResonanceDeformation(t) {
     const amp = currentWobbleAmplitude();
-    const freqScalar = currentBeatFreqScalar();
-    const applyWobble = (dot) => {
-        const op = dot.userData.originalPosition;
-        if (!op) return;
-        const normal = dot.userData.normal;
-        const wobble = amp * Math.cos(RESONANCE_RIPPLE_CONSTANT * dot.userData.restRadius - t * freqScalar);
-        dot.position.set(op.x + normal.x * wobble, op.y + normal.y * wobble, op.z + normal.z * wobble);
-    };
-    coreGroup.children.forEach(child => { if (child.userData?.isVertexDot) applyWobble(child); });
-    customPoints.forEach(applyWobble);
+    const harmonic = deformationMode === 'harmonic';
+    const edges = deformationMode === 'edges';
+    const usesMode = harmonic || edges;
+    const mode = usesMode ? nearestHarmonicMode(currentFrequencyHz()) : null;
+    const freqScalar = usesMode ? currentCarrierFreqScalar() : currentBeatFreqScalar();
+
+    if (edges) {
+        // Vertices stay at rest in edges mode — isolates the standing-wave effect so it reads as
+        // "a rigid solid whose edges bow," rather than compositing with per-vertex displacement.
+        vertexDots.forEach(dot => { if (dot.userData.originalPosition) dot.position.copy(dot.userData.originalPosition); });
+        customPoints.forEach(dot => { if (dot.userData.originalPosition) dot.position.copy(dot.userData.originalPosition); });
+    } else {
+        const applyWobble = (dot) => {
+            const op = dot.userData.originalPosition;
+            if (!op) return;
+            const normal = dot.userData.normal;
+            const wobble = harmonic
+                ? amp * normalizedHarmonicValue(mode.l, mode.m, normal) * Math.cos(t * freqScalar)
+                : amp * Math.cos(RESONANCE_RIPPLE_CONSTANT * dot.userData.restRadius - t * freqScalar);
+            dot.position.set(op.x + normal.x * wobble, op.y + normal.y * wobble, op.z + normal.z * wobble);
+        };
+        coreGroup.children.forEach(child => { if (child.userData?.isVertexDot) applyWobble(child); });
+        customPoints.forEach(applyWobble);
+    }
+
+    if (usesMode) applyHarmonicColors(mode); else resetHarmonicColors();
+    syncWireframeAndMeshToVertices();
+
+    if (currentWireframe) currentWireframe.visible = !edges;
+    if (currentMesh) currentMesh.visible = !edges;
+    if (cymaticEdgeGroup) cymaticEdgeGroup.visible = edges;
+    if (edges) updateCymaticEdges(mode.l, t, freqScalar, amp);
+}
+
+// Node/antinode readability via color instead of physically curving edges (descoped in v0.3 §5) —
+// dark near |h| ~ 0 (node), bright at high |h| (antinode). Same hue/saturation as the existing gold
+// accent, only lightness varies, so it reads as "the same material getting hotter," not a new palette.
+const RESONANCE_GOLD_HSL = { h: 0, s: 0, l: 0 };
+new THREE.Color(0xd4a03c).getHSL(RESONANCE_GOLD_HSL);
+const RESONANCE_NODE_MIN_LIGHTNESS = 0.12;
+const RESONANCE_NODE_MAX_LIGHTNESS = 0.78;
+
+function applyHarmonicColors(mode) {
+    vertexDots.forEach(dot => {
+        const absH = Math.abs(normalizedHarmonicValue(mode.l, mode.m, dot.userData.normal));
+        const lightness = RESONANCE_NODE_MIN_LIGHTNESS + absH * (RESONANCE_NODE_MAX_LIGHTNESS - RESONANCE_NODE_MIN_LIGHTNESS);
+        dot.material.color.setHSL(RESONANCE_GOLD_HSL.h, RESONANCE_GOLD_HSL.s, lightness);
+    });
+    const wfColor = currentWireframe?.geometry.attributes.color;
+    if (!wfColor) return;
+    for (let i = 0; i < wireframeVertexMap.length; i++) {
+        const dot = vertexDots[wireframeVertexMap[i]];
+        if (dot) wfColor.setXYZ(i, dot.material.color.r, dot.material.color.g, dot.material.color.b);
+    }
+    wfColor.needsUpdate = true;
+}
+
+function resetHarmonicColors() {
+    vertexDots.forEach(dot => dot.material.color.setHex(0xd4a03c));
+    const wfColor = currentWireframe?.geometry.attributes.color;
+    if (!wfColor) return;
+    wfColor.array.fill(1);
+    wfColor.needsUpdate = true;
+}
+
+// Wireframe/mesh previously stayed rigid while only the small vertex dots moved — this makes the
+// visually dominant cage itself follow the same displacement, reusing the dots' positions directly.
+function syncWireframeAndMeshToVertices() {
+    if (!currentWireframe || !currentMesh || vertexDots.length === 0) return;
+
+    const wfPos = currentWireframe.geometry.attributes.position;
+    for (let i = 0; i < wireframeVertexMap.length; i++) {
+        const dot = vertexDots[wireframeVertexMap[i]];
+        if (dot) wfPos.setXYZ(i, dot.position.x, dot.position.y, dot.position.z);
+    }
+    wfPos.needsUpdate = true;
+
+    const meshPos = currentMesh.geometry.attributes.position;
+    for (let i = 0; i < meshVertexMap.length; i++) {
+        const dot = vertexDots[meshVertexMap[i]];
+        if (dot) meshPos.setXYZ(i, dot.position.x, dot.position.y, dot.position.z);
+    }
+    meshPos.needsUpdate = true;
+}
+
+/* ====== Edge Standing Waves (v0.4) — interior nodes along a single edge ====== */
+
+// Perpendicular to the edge, via Gram-Schmidt: take "radially outward from center" and remove
+// whatever component of it points along the edge itself. A 3D line has infinitely many perpendicular
+// directions; this picks the one that reads as "the edge bowing away from the solid's own center."
+function computeEdgeBowDirection(posA, posB, center) {
+    const tangent = posB.clone().sub(posA).normalize();
+    const midpoint = posA.clone().add(posB).multiplyScalar(0.5);
+    const radialGuess = midpoint.clone().sub(center).normalize();
+    const bowDir = radialGuess.clone().sub(tangent.clone().multiplyScalar(radialGuess.dot(tangent)));
+    if (bowDir.lengthSq() < 1e-6) bowDir.set(0, 1, 0).sub(tangent.clone().multiplyScalar(tangent.y)); // edge passes through center
+    return bowDir.normalize();
+}
+
+// sin(l*pi*s) is exactly 0 at s=0 and s=1 for any integer l, so endpoints are always pinned to the
+// real vertex position with no discontinuity. l-1 interior zero-crossings (nodes) appear as l increases —
+// reuses the same mode.l already selected per-frame from carrierHz, no separate frequency table needed.
+function edgeBowOffset(l, s, t, amp, freqScalar) {
+    return amp * EDGE_AMP_SCALE * Math.sin(l * Math.PI * s) * Math.cos(t * freqScalar);
+}
+
+const _edgeColorScratch = new THREE.Color(); // reused per-point to avoid allocating 600 Colors/frame
+
+function updateCymaticEdges(l, t, freqScalar, amp) {
+    for (let k = 0; k < edgeList.length; k++) {
+        const [a, b] = edgeList[k];
+        const posA = vertexDots[a].position, posB = vertexDots[b].position;
+        const bowDir = edgeBowDirections[k];
+        const line = cymaticEdgeGroup.children[k];
+        const posAttr = line.geometry.attributes.position;
+        const colorAttr = line.geometry.attributes.color;
+        for (let i = 0; i < EDGE_SUBDIVISIONS; i++) {
+            const s = i / (EDGE_SUBDIVISIONS - 1);
+            const bow = edgeBowOffset(l, s, t, amp, freqScalar);
+            posAttr.setXYZ(i,
+                posA.x + (posB.x - posA.x) * s + bowDir.x * bow,
+                posA.y + (posB.y - posA.y) * s + bowDir.y * bow,
+                posA.z + (posB.z - posA.z) * s + bowDir.z * bow
+            );
+            const lightness = RESONANCE_NODE_MIN_LIGHTNESS + Math.abs(Math.sin(l * Math.PI * s)) * (RESONANCE_NODE_MAX_LIGHTNESS - RESONANCE_NODE_MIN_LIGHTNESS);
+            _edgeColorScratch.setHSL(RESONANCE_GOLD_HSL.h, RESONANCE_GOLD_HSL.s, lightness);
+            colorAttr.setXYZ(i, _edgeColorScratch.r, _edgeColorScratch.g, _edgeColorScratch.b);
+        }
+        posAttr.needsUpdate = true;
+        colorAttr.needsUpdate = true;
+    }
+}
+
+function resetEdgeBow() {
+    if (!cymaticEdgeGroup) return;
+    cymaticEdgeGroup.visible = false;
+    cymaticEdgeGroup.children.forEach(line => {
+        line.geometry.attributes.color.array.fill(1);
+        line.geometry.attributes.color.needsUpdate = true;
+    });
 }
 
 function resetAllVerticesToRest() {
@@ -1157,6 +1394,11 @@ function resetAllVerticesToRest() {
     customPoints.forEach(dot => {
         if (dot.userData.originalPosition) dot.position.copy(dot.userData.originalPosition);
     });
+    resetHarmonicColors();
+    resetEdgeBow();
+    if (currentWireframe) currentWireframe.visible = true;
+    if (currentMesh) currentMesh.visible = true;
+    syncWireframeAndMeshToVertices();
 }
 
 let audioContext = null;
@@ -1251,15 +1493,17 @@ function stopAudioSource() {
 
 function readDominantFrequency(analyser, freqData) {
     analyser.getByteFrequencyData(freqData);
-    let maxVal = 0, maxIdx = 0, sum = 0;
+    let maxVal = 0, maxIdx = 0;
     for (let i = 0; i < freqData.length; i++) {
         const v = freqData[i];
-        sum += v;
         if (v > maxVal) { maxVal = v; maxIdx = i; }
     }
     const nyquist = audioContext.sampleRate / 2;
     const hz = (maxIdx / freqData.length) * nyquist;
-    const amplitude = (sum / freqData.length) / 255;
+    // Peak at the dominant bin, not the mean across all bins — a pure/narrowband tone (Solfeggio,
+    // binaural) lights up only 1-2 of ~1024 bins, so averaging the whole spectrum reads as near-silent
+    // even when the actual tone is loud. Peak reflects "how strong is the tone we detected."
+    const amplitude = maxVal / 255;
     return { hz, amplitude };
 }
 
@@ -1314,6 +1558,39 @@ const resonanceFileInput = document.getElementById('resonance-file-input');
 const resonanceMicBtn = document.getElementById('resonance-mic-btn');
 const resonanceStopBtn = document.getElementById('resonance-stop-btn');
 const resonanceReadoutEl = document.getElementById('resonance-readout');
+const resonanceModeBtn = document.getElementById('resonance-mode-btn');
+const resonanceBridgeBtn = document.getElementById('resonance-bridge-btn');
+
+const DEFORMATION_MODE_CYCLE = { radial: 'harmonic', harmonic: 'edges', edges: 'radial' };
+const DEFORMATION_MODE_LABEL = { radial: 'RADIAL', harmonic: 'HARMONIC', edges: 'EDGES' };
+
+resonanceModeBtn.addEventListener('click', () => {
+    resetAllVerticesToRest(); // avoid a visible snap from displacement computed under the old mode's formula
+    deformationMode = DEFORMATION_MODE_CYCLE[deformationMode];
+    resonanceModeBtn.innerHTML = `<i class="fas fa-atom"></i> MODE: ${DEFORMATION_MODE_LABEL[deformationMode]}`;
+});
+
+// v1.0 bridge — Lab is always the launcher, so Voxluminara (the child window) automatically
+// gets a window.opener reference back here, and postMessage works regardless of file:// origin.
+let voxluminaraWindow = null;
+resonanceBridgeBtn.addEventListener('click', () => {
+    voxluminaraWindow = window.open('voxluminara.html', 'voxluminara-bridge');
+    if (!voxluminaraWindow) {
+        resonanceReadoutEl.textContent = 'POPUP BLOCKED — ALLOW POPUPS FOR THE BRIDGE';
+    }
+});
+
+window.addEventListener('message', (e) => {
+    if (e.data?.type !== 'voxluminara-tone') return;
+    if (interactionMode !== 'RESONANCE') setInteractionMode('RESONANCE');
+    audioActive = e.data.active;
+    if (e.data.active) {
+        carrierHz = e.data.hz;
+        audioAmplitude = 1.0; // deliberate external trigger, not a measured level — read as fully present
+        deformationMode = e.data.mode;
+        resonanceModeBtn.innerHTML = `<i class="fas fa-atom"></i> MODE: ${DEFORMATION_MODE_LABEL[deformationMode]}`;
+    }
+});
 
 resonanceFileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];

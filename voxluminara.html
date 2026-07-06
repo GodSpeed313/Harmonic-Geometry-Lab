@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOXLUMINARA — The Resonant Language</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --void: #04030a;
+    --deep: #090618;
+    --indigo: #1a0f3c;
+    --violet: #2d1b69;
+    --pulse: #6b35e8;
+    --glow: #9b6dff;
+    --cyan: #00d4ff;
+    --gold: #f0c060;
+    --silver: #c8d8f0;
+    --white: #eef2ff;
+    --dim: rgba(155, 109, 255, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--void);
+    color: var(--white);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.6;
+  }
+
+  /* ── CYMATICS CANVAS ── */
+  #cymaticsCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.18;
+  }
+
+  /* ── CONTENT ── */
+  .content {
+    position: relative;
+    z-index: 10;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 24px;
+    position: relative;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 80px;
+    background: linear-gradient(to bottom, var(--pulse), transparent);
+  }
+
+  .lang-name {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: clamp(2.4rem, 8vw, 5.5rem);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--glow) 40%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    animation: titlePulse 4s ease-in-out infinite;
+    margin-bottom: 0.2em;
+  }
+
+  @keyframes titlePulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.3) drop-shadow(0 0 40px rgba(155,109,255,0.6)); }
+  }
+
+  .lang-subtitle {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(0.65rem, 2vw, 0.85rem);
+    letter-spacing: 0.35em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 2.5em;
+    opacity: 0.8;
+  }
+
+  .hero-desc {
+    max-width: 680px;
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    font-style: italic;
+    color: var(--silver);
+    font-weight: 300;
+    line-height: 1.9;
+  }
+
+  /* ── SECTIONS ── */
+  section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    color: var(--pulse);
+    text-transform: uppercase;
+    margin-bottom: 0.8em;
+  }
+
+  h2 {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    font-weight: 400;
+    color: var(--glow);
+    margin-bottom: 1.2em;
+    letter-spacing: 0.04em;
+  }
+
+  h3 {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: clamp(1rem, 2.5vw, 1.35rem);
+    color: var(--gold);
+    margin-bottom: 0.6em;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+  }
+
+  p {
+    color: var(--silver);
+    margin-bottom: 1.2em;
+    font-weight: 300;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--violet), var(--pulse), var(--violet), transparent);
+    margin: 20px 0;
+  }
+
+  /* ── SCIENCE GRID ── */
+  .science-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 40px;
+  }
+
+  .science-card {
+    background: linear-gradient(135deg, rgba(26,15,60,0.8), rgba(9,6,24,0.9));
+    border: 1px solid rgba(107,53,232,0.3);
+    border-radius: 2px;
+    padding: 32px 28px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .science-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--cyan), var(--pulse));
+  }
+
+  .science-card:hover {
+    border-color: rgba(155,109,255,0.6);
+    transform: translateY(-3px);
+  }
+
+  .freq-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--cyan);
+    letter-spacing: 0.2em;
+    margin-bottom: 1em;
+    opacity: 0.9;
+  }
+
+  /* ── FREQUENCY TABLE ── */
+  .freq-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 32px 0;
+    font-size: 0.95rem;
+  }
+
+  .freq-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(107,53,232,0.4);
+    text-align: left;
+  }
+
+  .freq-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(107,53,232,0.15);
+    color: var(--silver);
+    font-weight: 300;
+    vertical-align: top;
+  }
+
+  .freq-table tr:hover td {
+    background: rgba(107,53,232,0.08);
+  }
+
+  .freq-hz {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--gold);
+  }
+
+  /* ── PHONEME GRID ── */
+  .phoneme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+    margin: 32px 0;
+  }
+
+  .phoneme-card {
+    background: rgba(26,15,60,0.6);
+    border: 1px solid rgba(107,53,232,0.25);
+    border-radius: 2px;
+    padding: 20px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .phoneme-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(155,109,255,0.15), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .phoneme-card:hover::after { opacity: 1; }
+  .phoneme-card:hover, .phoneme-card.active { border-color: rgba(155,109,255,0.5); transform: scale(1.03); }
+  .phoneme-card.active { box-shadow: 0 0 16px rgba(107,53,232,0.4); }
+
+  .phoneme-glyph {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: 2rem;
+    color: var(--glow);
+    display: block;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+
+  .phoneme-ipa {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--cyan);
+    letter-spacing: 0.15em;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .phoneme-meaning {
+    font-size: 0.82rem;
+    color: var(--silver);
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  /* ── WORDS ── */
+  .word-entry {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 24px 32px;
+    padding: 28px 0;
+    border-bottom: 1px solid rgba(107,53,232,0.15);
+    align-items: start;
+  }
+
+  .word-vox {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: clamp(1.4rem, 3.5vw, 2rem);
+    color: var(--gold);
+    min-width: 200px;
+    line-height: 1.2;
+  }
+
+  .word-pron {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--cyan);
+    letter-spacing: 0.1em;
+    margin-top: 6px;
+  }
+
+  .word-def {
+    font-size: 1rem;
+    color: var(--silver);
+    font-weight: 300;
+    font-style: italic;
+  }
+
+  .word-notes {
+    font-size: 0.88rem;
+    color: rgba(155,109,255,0.85);
+    margin-top: 8px;
+    font-weight: 300;
+  }
+
+  /* ── PHRASES ── */
+  .phrase-block {
+    background: linear-gradient(135deg, rgba(45,27,105,0.4), rgba(9,6,24,0.7));
+    border-left: 3px solid var(--pulse);
+    padding: 28px 32px;
+    margin: 24px 0;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .phrase-vox {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: clamp(1.1rem, 3vw, 1.6rem);
+    color: var(--glow);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .phrase-trans {
+    font-size: 0.9rem;
+    color: var(--silver);
+    font-style: italic;
+    margin-bottom: 12px;
+    font-weight: 300;
+  }
+
+  .phrase-instruction {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--cyan);
+    letter-spacing: 0.12em;
+    line-height: 1.8;
+  }
+
+  /* ── GRAMMAR ── */
+  .grammar-rule {
+    background: rgba(9,6,24,0.8);
+    border: 1px solid rgba(107,53,232,0.2);
+    padding: 24px;
+    margin: 16px 0;
+    border-radius: 2px;
+  }
+
+  .rule-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--pulse);
+    letter-spacing: 0.3em;
+    margin-bottom: 8px;
+  }
+
+  /* ── PROTOCOL ── */
+  .protocol-step {
+    display: flex;
+    gap: 24px;
+    padding: 24px 0;
+    border-bottom: 1px solid rgba(107,53,232,0.12);
+  }
+
+  .step-num {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: 2.5rem;
+    color: rgba(107,53,232,0.4);
+    min-width: 60px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .step-content h3 { margin-top: 4px; }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 60px 24px;
+    border-top: 1px solid rgba(107,53,232,0.2);
+    color: rgba(200,216,240,0.4);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  /* ── INTERACTIVE PLAYER ── */
+  .sound-player {
+    background: rgba(9,6,24,0.9);
+    border: 1px solid rgba(0,212,255,0.3);
+    padding: 32px;
+    margin: 32px 0;
+    border-radius: 2px;
+    text-align: center;
+  }
+
+  .sound-player p {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .freq-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .freq-btn {
+    background: transparent;
+    border: 1px solid rgba(107,53,232,0.4);
+    color: var(--glow);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .freq-btn:hover, .freq-btn.active {
+    background: rgba(107,53,232,0.25);
+    border-color: var(--pulse);
+    color: var(--cyan);
+    box-shadow: 0 0 16px rgba(107,53,232,0.3);
+  }
+
+  .play-btn {
+    background: linear-gradient(135deg, var(--violet), var(--indigo));
+    border: 1px solid var(--glow);
+    color: var(--white);
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    padding: 14px 36px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .play-btn:hover {
+    background: linear-gradient(135deg, var(--pulse), var(--violet));
+    box-shadow: 0 0 30px rgba(107,53,232,0.5);
+    transform: scale(1.02);
+  }
+
+  #freq-display {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: rgba(155,109,255,0.6);
+    margin-top: 16px;
+    letter-spacing: 0.15em;
+  }
+
+  /* ── ANIM ── */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s, transform 0.8s;
+  }
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── GLYPH RING ── */
+  .glyph-ring {
+    width: 200px;
+    height: 200px;
+    margin: 40px auto;
+    position: relative;
+    animation: ringRotate 20s linear infinite;
+  }
+
+  @keyframes ringRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .glyph-ring svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── RECORD PANEL ── */
+  .record-panel {
+    background: rgba(9,6,24,0.9);
+    border: 1px solid rgba(107,53,232,0.3);
+    border-top: 1px solid rgba(0,212,255,0.15);
+    padding: 28px 32px;
+    margin-top: 0;
+    text-align: center;
+  }
+
+  .record-panel-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .record-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .rec-btn {
+    background: transparent;
+    border: 1px solid rgba(180,40,40,0.5);
+    color: #ff6666;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    padding: 10px 22px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .rec-btn:hover, .rec-btn.recording {
+    background: rgba(180,30,30,0.25);
+    border-color: #ff4444;
+    box-shadow: 0 0 16px rgba(200,30,30,0.35);
+  }
+
+  .rec-btn.recording {
+    color: #ff3333;
+    animation: recPulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes recPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(220,30,30,0.3); }
+    50%       { box-shadow: 0 0 28px rgba(220,30,30,0.7); }
+  }
+
+  .rec-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ff4444;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .rec-btn.recording .rec-dot {
+    animation: dotBlink 0.8s step-start infinite;
+  }
+
+  @keyframes dotBlink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  .save-btn {
+    background: transparent;
+    border: 1px solid rgba(107,53,232,0.4);
+    color: var(--glow);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    padding: 10px 22px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .save-btn:hover:not(:disabled) {
+    background: rgba(107,53,232,0.25);
+    border-color: var(--pulse);
+    color: var(--cyan);
+    box-shadow: 0 0 16px rgba(107,53,232,0.3);
+  }
+
+  .save-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .import-label {
+    background: transparent;
+    border: 1px solid rgba(0,212,255,0.35);
+    color: var(--cyan);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    padding: 10px 22px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    display: inline-block;
+  }
+
+  .import-label:hover {
+    background: rgba(0,212,255,0.1);
+    border-color: var(--cyan);
+    box-shadow: 0 0 16px rgba(0,212,255,0.2);
+  }
+
+  #import-file { display: none; }
+
+  /* ── PLAYBACK ── */
+  .playback-area {
+    margin-top: 16px;
+    display: none;
+  }
+
+  .playback-area.visible { display: block; }
+
+  .playback-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: rgba(155,109,255,0.6);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  #playback-audio {
+    width: 100%;
+    max-width: 500px;
+    height: 36px;
+    filter: invert(1) hue-rotate(200deg) brightness(0.8);
+    opacity: 0.85;
+  }
+
+  /* ── WAVEFORM ── */
+  #waveform-canvas {
+    width: 100%;
+    max-width: 500px;
+    height: 60px;
+    border: 1px solid rgba(107,53,232,0.25);
+    display: block;
+    margin: 12px auto 0;
+    background: rgba(9,6,24,0.8);
+  }
+
+  .mic-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    cursor: pointer;
+    margin-bottom: 4px;
+  }
+
+  .mic-toggle-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: rgba(155,109,255,0.6);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .mic-toggle-wrap:hover .mic-toggle-label { color: var(--glow); }
+
+  #mic-toggle {
+    accent-color: var(--pulse);
+    width: 14px; height: 14px;
+    cursor: pointer;
+  }
+
+  .rec-status {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: rgba(155,109,255,0.6);
+    margin-top: 12px;
+    letter-spacing: 0.15em;
+    min-height: 20px;
+  }
+
+  .rec-status.active { color: #ff6666; }
+  .rec-status.ready  { color: var(--cyan); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--void); }
+  ::-webkit-scrollbar-thumb { background: var(--violet); }
+
+  @media (max-width: 640px) {
+    .word-entry { grid-template-columns: 1fr; gap: 8px; }
+    .word-vox { min-width: unset; }
+    .protocol-step { flex-direction: column; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="cymaticsCanvas"></canvas>
+
+<div class="content">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="lang-name">VOXLUMINARA</div>
+    <div class="lang-subtitle">The Resonant Language of Expanded Perception</div>
+    <p class="hero-desc">
+      A constructed vibrational language rooted in cymatics, brainwave entrainment, 
+      and sacred phonetics — engineered so that the act of speaking or hearing it 
+      shifts the listener's nervous system toward states of expanded awareness.
+    </p>
+    <div class="glyph-ring">
+      <svg viewBox="0 0 200 200">
+        <defs>
+          <path id="circle-path" d="M 100,100 m -75,0 a 75,75 0 1,1 150,0 a 75,75 0 1,1 -150,0"/>
+        </defs>
+        <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(107,53,232,0.2)" stroke-width="1"/>
+        <circle cx="100" cy="100" r="75" fill="none" stroke="rgba(107,53,232,0.35)" stroke-width="1"/>
+        <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(0,212,255,0.2)" stroke-width="0.5"/>
+        <text font-family="Cinzel Decorative, cursive" font-size="10" fill="rgba(155,109,255,0.7)" letter-spacing="6">
+          <textPath href="#circle-path">ΛΩΣ · ΑΘΛ · ΩΛΘ · ΝΩΛ · ΣΞΩ · ΑΛΘ · </textPath>
+        </text>
+        <polygon points="100,30 115,70 100,60 85,70" fill="rgba(107,53,232,0.4)" stroke="rgba(155,109,255,0.5)" stroke-width="1"/>
+        <polygon points="100,170 115,130 100,140 85,130" fill="rgba(0,212,255,0.3)" stroke="rgba(0,212,255,0.4)" stroke-width="1"/>
+        <circle cx="100" cy="100" r="8" fill="rgba(155,109,255,0.5)"/>
+        <circle cx="100" cy="100" r="3" fill="var(--cyan)">
+          <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+    </div>
+  </div>
+
+  <!-- SECTION 1: SCIENCE -->
+  <section class="fade-in">
+    <div class="section-label">// Foundation</div>
+    <h2>The Science Behind the Language</h2>
+    <p>
+      Voxluminara is not invented arbitrarily. Every phoneme, tonal pattern, and grammatical rhythm is derived 
+      from measurable physical phenomena. The language works through four interlocking mechanisms.
+    </p>
+
+    <div class="science-grid">
+      <div class="science-card">
+        <div class="freq-tag">01 — CYMATICS</div>
+        <h3>Resonant Geometry</h3>
+        <p>Hans Jenny (1904–1972) demonstrated that sound frequencies impose geometric order on matter. 
+        Sand, water, and plasma take on mandalic forms — pentagons, hexagons, star-flowers — at precise 
+        frequencies. Voxluminara's vowels are mapped to cymatic nodes: the mouth cavity becomes a Chladni 
+        plate, sculpting geometric pressure patterns inside the skull when each phoneme is produced correctly.</p>
+      </div>
+
+      <div class="science-card">
+        <div class="freq-tag">02 — BRAINWAVE ENTRAINMENT</div>
+        <h3>Rhythmic Coupling</h3>
+        <p>The brain's electrical activity synchronizes with external rhythmic input — a phenomenon called 
+        <em>frequency following response</em>. Theta waves (4–8 Hz) correlate with hypnagogic perception, 
+        deep meditation, and access to non-ordinary cognition. Gamma waves (40 Hz) correlate with heightened 
+        awareness and binding of disparate perceptions. Voxluminara's syllable rhythms are structured in 
+        Fibonacci groupings that naturally entrain toward theta-gamma coupling.</p>
+      </div>
+
+      <div class="science-card">
+        <div class="freq-tag">03 — FORMANT ACOUSTICS</div>
+        <h3>Vowel Architecture</h3>
+        <p>Each vowel is defined by its two primary formant frequencies (F1 and F2) — resonant peaks created 
+        by tongue and jaw position. High-F2 vowels (like "ee") activate frontal cortex regions; low-F1 vowels 
+        (like "oh") create chest cavity resonance. By designing vowel sequences that sweep specific F1/F2 
+        trajectories, the language orchestrates a coherent cortical activation pattern unavailable in natural 
+        speech.</p>
+      </div>
+
+      <div class="science-card">
+        <div class="freq-tag">04 — MANTRIC TRADITIONS</div>
+        <h3>Living Precedents</h3>
+        <p>Sanskrit was designed phonetically — each bija mantra (seed sound) corresponds to a 
+        specific energy center. Tibetan overtone chanting (khoomei) teaches a single larynx to produce 
+        multiple frequencies simultaneously, demonstrating that the body is a multi-channel resonator. 
+        The 528 Hz "love frequency" and Solfeggio scale (396, 417, 528, 639, 741, 852 Hz) represent 
+        ancient tuning systems Voxluminara formalizes into grammatical structure.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 2: FREQUENCIES -->
+  <section class="fade-in">
+    <div class="section-label">// Frequency Map</div>
+    <h2>The Tonal Architecture</h2>
+    <p>
+      Every consonant class in Voxluminara is assigned a base frequency drawn from demonstrated 
+      cymatic and neuroacoustic research. The speaker does not need to produce these exact Hz values 
+      — the mouth shapes and tongue positions are calibrated so that the resonant cavity naturally 
+      emphasizes these harmonics.
+    </p>
+
+    <table class="freq-table">
+      <thead>
+        <tr>
+          <th>Class</th>
+          <th>Phonemes</th>
+          <th>Base Frequency</th>
+          <th>Cymatic Form</th>
+          <th>Neurological Target</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Æther Opens</strong></td>
+          <td>Λ, Ω, Θ</td>
+          <td class="freq-hz">528 Hz</td>
+          <td>Hexagonal lattice (flower of life)</td>
+          <td>DNA repair-associated; heart-field coherence; love/integration</td>
+        </tr>
+        <tr>
+          <td><strong>Void Consonants</strong></td>
+          <td>Σ, Ξ, Ψ</td>
+          <td class="freq-hz">396 Hz</td>
+          <td>Triangular nodes</td>
+          <td>Liberation of guilt/fear; survival circuits reset</td>
+        </tr>
+        <tr>
+          <td><strong>Bridge Glides</strong></td>
+          <td>Ν, Μ, Λ (soft)</td>
+          <td class="freq-hz">639 Hz</td>
+          <td>Pentagonal rings</td>
+          <td>Connection, relationship between brain hemispheres</td>
+        </tr>
+        <tr>
+          <td><strong>Crown Fricatives</strong></td>
+          <td>Ζ, Φ, Χ</td>
+          <td class="freq-hz">852 Hz</td>
+          <td>Star-octagon pattern</td>
+          <td>Awakening intuition; third-eye gamma activation</td>
+        </tr>
+        <tr>
+          <td><strong>Root Stops</strong></td>
+          <td>Κ, Τ, Π</td>
+          <td class="freq-hz">174 Hz</td>
+          <td>Circular nodes</td>
+          <td>Grounding, body anchoring during expanded states</td>
+        </tr>
+        <tr>
+          <td><strong>Theta Vowels</strong></td>
+          <td>AH, OH, EE, AY, OO</td>
+          <td class="freq-hz">7.83 Hz (rhythm)</td>
+          <td>Schumann resonance — Earth's own field</td>
+          <td>Alignment with planetary electromagnetic baseline</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SOUND PLAYER -->
+  <section class="fade-in">
+    <div class="section-label">// Interactive</div>
+    <h2>Frequency Resonance Experience</h2>
+    <p>Tone each frequency and feel its resonance in your body before speaking the language. 
+    Use headphones for maximum effect. Each tone is a binaural pure sine.</p>
+
+    <div class="sound-player">
+      <p>// Select a frequency to experience its resonance field</p>
+      <div class="freq-buttons">
+        <button class="freq-btn" data-freq="174" onclick="playFreq(174, this)">174 Hz — Root</button>
+        <button class="freq-btn" data-freq="396" onclick="playFreq(396, this)">396 Hz — Void</button>
+        <button class="freq-btn" data-freq="417" onclick="playFreq(417, this)">417 Hz — Change</button>
+        <button class="freq-btn" data-freq="528" onclick="playFreq(528, this)">528 Hz — Æther</button>
+        <button class="freq-btn" data-freq="639" onclick="playFreq(639, this)">639 Hz — Bridge</button>
+        <button class="freq-btn" data-freq="741" onclick="playFreq(741, this)">741 Hz — Voice</button>
+        <button class="freq-btn" data-freq="852" onclick="playFreq(852, this)">852 Hz — Crown</button>
+        <button class="freq-btn" data-freq="963" onclick="playFreq(963, this)">963 Hz — Source</button>
+      </div>
+      <button class="play-btn" onclick="stopFreq()">◼ SILENCE</button>
+      <div id="freq-display">— select a frequency above —</div>
+    </div>
+
+    <!-- RECORD / SAVE / IMPORT -->
+    <div class="record-panel">
+      <div class="record-panel-label">// Capture your practice session</div>
+
+      <div class="record-controls">
+        <button class="rec-btn" id="rec-btn" onclick="toggleRecord()">
+          <span class="rec-dot"></span>
+          <span id="rec-btn-text">Record</span>
+        </button>
+
+        <button class="save-btn" id="save-btn" onclick="saveRecording()" disabled>
+          ↓ Save Recording
+        </button>
+
+        <label class="import-label" for="import-file">
+          ↑ Import Audio
+        </label>
+        <input type="file" id="import-file" accept="audio/*" onchange="importAudio(event)">
+      </div>
+
+      <label class="mic-toggle-wrap">
+        <input type="checkbox" id="mic-toggle">
+        <span class="mic-toggle-label">+ Include mic (voice overlay)</span>
+      </label>
+
+      <div class="rec-status" id="rec-status">— ready to record —</div>
+
+      <div class="playback-area" id="playback-area">
+        <div class="playback-label" id="playback-label">— recording —</div>
+        <audio id="playback-audio" controls></audio>
+        <canvas id="waveform-canvas"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 3: PHONEMES -->
+  <section class="fade-in">
+    <div class="section-label">// Phonology</div>
+    <h2>The Phoneme System</h2>
+    <p>
+      Voxluminara uses 18 phonemes drawn from resonant mouth positions that maximize 
+      cranial cavity vibration. Each has a Greek-derived glyph, an IPA pronunciation guide, 
+      and an associated perceptual intention. Click any phoneme to speak its tone.
+    </p>
+
+    <div class="phoneme-grid">
+      <div class="phoneme-card" onclick="phonemeClicked('Λ', this)">
+        <span class="phoneme-glyph">Λ</span>
+        <span class="phoneme-ipa">/laah/</span>
+        <span class="phoneme-meaning">Openness · Sky · Vastness</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Ω', this)">
+        <span class="phoneme-glyph">Ω</span>
+        <span class="phoneme-ipa">/ohm/</span>
+        <span class="phoneme-meaning">Completion · Circle · All</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Θ', this)">
+        <span class="phoneme-glyph">Θ</span>
+        <span class="phoneme-ipa">/thh/</span>
+        <span class="phoneme-meaning">Threshold · Between · Liminal</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Σ', this)">
+        <span class="phoneme-glyph">Σ</span>
+        <span class="phoneme-ipa">/sss/</span>
+        <span class="phoneme-meaning">Stillness · Void · Before</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Ξ', this)">
+        <span class="phoneme-glyph">Ξ</span>
+        <span class="phoneme-ipa">/kss/</span>
+        <span class="phoneme-meaning">Crossing · Polarity · Bridge</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Ψ', this)">
+        <span class="phoneme-glyph">Ψ</span>
+        <span class="phoneme-ipa">/psi/</span>
+        <span class="phoneme-meaning">Psyche · Mind · Receiver</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Ν', this)">
+        <span class="phoneme-glyph">Ν</span>
+        <span class="phoneme-ipa">/nnn/</span>
+        <span class="phoneme-meaning">Flow · Between · Connective</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Α', this)">
+        <span class="phoneme-glyph">Α</span>
+        <span class="phoneme-ipa">/aah/</span>
+        <span class="phoneme-meaning">Origin · First · Source light</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Η', this)">
+        <span class="phoneme-glyph">Η</span>
+        <span class="phoneme-ipa">/eee/</span>
+        <span class="phoneme-meaning">Seeking · Reaching · Query</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Ζ', this)">
+        <span class="phoneme-glyph">Ζ</span>
+        <span class="phoneme-ipa">/zzz/</span>
+        <span class="phoneme-meaning">Awakening · Buzzing life</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Φ', this)">
+        <span class="phoneme-glyph">Φ</span>
+        <span class="phoneme-ipa">/fff/</span>
+        <span class="phoneme-meaning">Golden ratio · Spiral · Growth</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Χ', this)">
+        <span class="phoneme-glyph">Χ</span>
+        <span class="phoneme-ipa">/khh/</span>
+        <span class="phoneme-meaning">Unknown · Beyond · Crossing</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Κ', this)">
+        <span class="phoneme-glyph">Κ</span>
+        <span class="phoneme-ipa">/kk/</span>
+        <span class="phoneme-meaning">Ground · Fixed point · Anchor</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Τ', this)">
+        <span class="phoneme-glyph">Τ</span>
+        <span class="phoneme-ipa">/tth/</span>
+        <span class="phoneme-meaning">Touch · Contact · Manifest</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Π', this)">
+        <span class="phoneme-glyph">Π</span>
+        <span class="phoneme-ipa">/pp/</span>
+        <span class="phoneme-meaning">Proportion · Ratio · Math</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Μ', this)">
+        <span class="phoneme-glyph">Μ</span>
+        <span class="phoneme-ipa">/mmm/</span>
+        <span class="phoneme-meaning">Hum · Mother · Foundation</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Ρ', this)">
+        <span class="phoneme-glyph">Ρ</span>
+        <span class="phoneme-ipa">/rrr/</span>
+        <span class="phoneme-meaning">River · Motion · Continuity</span>
+      </div>
+      <div class="phoneme-card" onclick="phonemeClicked('Υ', this)">
+        <span class="phoneme-glyph">Υ</span>
+        <span class="phoneme-ipa">/ooo/</span>
+        <span class="phoneme-meaning">Union · Womb · Emergence</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 4: LEXICON -->
+  <section class="fade-in">
+    <div class="section-label">// Lexicon</div>
+    <h2>Core Vocabulary</h2>
+    <p>These are the first 20 root words. Each word is constructed so its component phonemes 
+    amplify its meaning resonantly — the sound itself carries the concept as a vibrational pattern.</p>
+
+    <div class="word-entry">
+      <div>
+        <div class="word-vox">ΛΩΣΑΗ</div>
+        <div class="word-pron">lah-ohm-sah-ee</div>
+      </div>
+      <div>
+        <div class="word-def">The luminous field of awareness that exists prior to thought; the silent witness behind all experience; what remains when you stop identifying with content</div>
+        <div class="word-notes">→ Speak with resonance in the chest. Let the OH linger 3 full seconds. This is the core noun of the language — all other words orbit it.</div>
+      </div>
+    </div>
+
+    <div class="word-entry">
+      <div>
+        <div class="word-vox">ΘΗΝΩΛ</div>
+        <div class="word-pron">thh-ee-noh-lll</div>
+      </div>
+      <div>
+        <div class="word-def">The membrane between perceptual worlds; the liminal zone where one dimension gives way to another; the veil that is always already permeable</div>
+        <div class="word-notes">→ The THH should be breathed, not voiced. The NNN should vibrate behind the nose, not the mouth.</div>
+      </div>
+    </div>
+
+    <div class="word-entry">
+      <div>
+        <div class="word-vox">ΣΞΩΜΑ</div>
+        <div class="word-pron">sss-ksoh-mmm-ah</div>
+      </div>
+      <div>
+        <div class="word-def">Attention itself, as a directed beam; consciousness as instrument rather than substance; the act of perceiving stripped of all content</div>
+        <div class="word-notes">→ Begin with an unvoiced SSS. Let the M close with lips sealed — the vibration should buzz in your skull.</div>
+      </div>
+    </div>
+
+    <div class="word-entry">
+      <div>
+        <div class="word-vox">ΦΑΛΩΗ</div>
+        <div class="word-pron">fff-ah-loh-ee</div>
+      </div>
+      <div>
+        <div class="word-def">The golden-ratio unfolding of perception; awareness expanding in Fibonacci spirals; the fractal nature of consciousness observing itself</div>
+        <div class="word-notes">→ FFF is key — feel the lip vibrate. This word encodes the phi ratio (1.618) in its syllable timing: 1, 1, 2, 3.</div>
+      </div>
+    </div>
+
+    <div class="word-entry">
+      <div>
+        <div class="word-vox">ΨΗΘΑΛ</div>
+        <div class="word-pron">psi-ee-thh-ahl</div>
+      </div>
+      <div>
+        <div class="word-def">Receiver-state; the condition of the psyche when it becomes an open antenna rather than a projector; receptivity to non-ordinary signal</div>
+        <div class="word-notes">→ This word should be spoken softly, as if you are asking. Never commanded. It activates the receiving posture.</div>
+      </div>
+    </div>
+
+    <div class="word-entry">
+      <div>
+        <div class="word-vox">ΝΩΑΘΗ</div>
+        <div class="word-pron">noh-ah-thh-ee</div>
+      </div>
+      <div>
+        <div class="word-def">Information that arrives without known origin; anomalous knowing; data that bypasses normal sensory channels</div>
+        <div class="word-notes">→ The NNN root marks the connective, flowing nature of this knowing — it flows TO you, not from you.</div>
+      </div>
+    </div>
+
+    <div class="word-entry">
+      <div>
+        <div class="word-vox">ΧΩΛΗΜ</div>
+        <div class="word-pron">khh-ohl-eh-mmm</div>
+      </div>
+      <div>
+        <div class="word-def">The unknown that calls to you; what is beyond current perception but actively drawing attention; the next dimensional layer asserting itself</div>
+        <div class="word-notes">→ KHH is a deep throat sound — the furthest back in the mouth you can produce. It represents the deepest unknown.</div>
+      </div>
+    </div>
+
+    <div class="word-entry">
+      <div>
+        <div class="word-vox">ΑΩΛΘΗ</div>
+        <div class="word-pron">ah-ohl-thh-ee</div>
+      </div>
+      <div>
+        <div class="word-def">The origin point of perception; source awareness; the primordial wakefulness that has always existed before individual identity</div>
+        <div class="word-notes">→ Begin with the widest possible open AH. This is the first word of the language — the origin phoneme of all consciousness words.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 5: GRAMMAR -->
+  <section class="fade-in">
+    <div class="section-label">// Grammar</div>
+    <h2>Structural Laws</h2>
+    <p>
+      Voxluminara has no linear grammar in the English sense. Instead it uses <em>resonant stacking</em> — 
+      words are layered by vibrational function rather than syntactic role.
+    </p>
+
+    <div class="grammar-rule">
+      <div class="rule-num">LAW 01 — THE ANCHOR-FIELD-MOVER STRUCTURE</div>
+      <h3>Every utterance follows: GROUND → FIELD → INTENTION</h3>
+      <p>First speak the Root (K/T/P words — grounding energy). Then speak the Field (vowel clusters — the space of awareness). Then speak the Mover (Z/F/X words — the direction of perception). This mirrors how meditation works: ground first, open second, then direct.</p>
+    </div>
+
+    <div class="grammar-rule">
+      <div class="rule-num">LAW 02 — FIBONACCI RHYTHM</div>
+      <h3>Syllable groupings follow 1-1-2-3-5 timing</h3>
+      <p>Short syllables occupy 1 beat, medium 2, and extended resonant syllables 3 or 5. This creates a natural phi-rhythm that the brain entrains to. It is the rhythm of organic growth — the same pattern found in plant spirals and shell geometry.</p>
+    </div>
+
+    <div class="grammar-rule">
+      <div class="rule-num">LAW 03 — THE HELD VOWEL</div>
+      <h3>Every phrase contains one vowel held for minimum 3 seconds</h3>
+      <p>This is the cymatic moment — the point at which the sound stabilizes a geometric standing wave in the resonant cavities of the skull. This is the "activation point" of each phrase. All meaning crystallizes in this moment.</p>
+    </div>
+
+    <div class="grammar-rule">
+      <div class="rule-num">LAW 04 — SILENCE AS PHONEME</div>
+      <h3>Pauses are mandatory and meaningful</h3>
+      <p>A pause of 2 seconds = "receiving" (ψ silence). A pause of 4 seconds = "integration" (ω silence). A pause of 7 seconds = "crossing the threshold" (θ silence). Silence is not empty — it is the field between words, where the neurological shift consolidates.</p>
+    </div>
+
+    <div class="grammar-rule">
+      <div class="rule-num">LAW 05 — ASCENDING PITCH</div>
+      <h3>Each phrase rises in fundamental frequency</h3>
+      <p>Begin each utterance at the lowest comfortable pitch. End at the highest. This models the movement from material density toward higher vibrational registers — physically training the nervous system to associate linguistic meaning with frequency ascent.</p>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 6: PHRASES -->
+  <section class="fade-in">
+    <div class="section-label">// Phrases</div>
+    <h2>Ritual Utterances</h2>
+    <p>These are complete phrases for specific states of perception. Each includes pronunciation, 
+    translation, and precise instruction for delivery.</p>
+
+    <div class="phrase-block">
+      <div class="phrase-vox">ΚΩΛΗ · ΛΩΣΑΗ · ΣΞΩΜΑ · ΘΗΝΩΛ</div>
+      <div class="phrase-trans">"I anchor my awareness at the threshold of the luminous field"</div>
+      <div class="phrase-instruction">
+        DELIVERY: Begin at low chest resonance on ΚΩΛΗ (2 sec). Rise to full-body resonance on ΛΩΣΑΗ — hold the ΩΩΩ for 5 full seconds. Drop to whisper for ΣΞΩΜΑ. End ΘΗΝΩΛ on the highest pitch you can sustain cleanly.
+        <br>// USE WHEN: Beginning any expanded perception practice. This is the opening gate phrase.
+      </div>
+    </div>
+
+    <div class="phrase-block">
+      <div class="phrase-vox">ΨΗΘΑΛ · ΝΩΑΘΗ · ΧΩΛΗΜ · ΑΩΛΘΗ</div>
+      <div class="phrase-trans">"I become the receiver of what flows from the unknown origin"</div>
+      <div class="phrase-instruction">
+        DELIVERY: ΨΗΘΑΛ breathed softly (receiver position). ΝΩΑΘΗ with nasal resonance — let NN vibrate in sinuses. ΧΩΛΗΜ from the back of the throat. ΑΩΛΘΗ with wide-open mouth, maximum cavity.
+        <br>// USE WHEN: Attempting to receive non-ordinary information, visions, or perceptions.
+      </div>
+    </div>
+
+    <div class="phrase-block">
+      <div class="phrase-vox">ΦΑΛΩΗ · ΨΗΘΑΛ · ΛΩΣΑΗ · ΨΗΘΑΛ · ΦΑΛΩΗ</div>
+      <div class="phrase-trans">"In the golden spiral of awareness, I receive, I become the field, I receive again, I expand"</div>
+      <div class="phrase-instruction">
+        DELIVERY: This phrase is palindromic — it folds back on itself like a Möbius strip. The symmetry is intentional. Speak it as a cycle, not a sentence. Repeat 3 or 7 times.
+        <br>// USE WHEN: Deepening into a meditative or trance state. The repetition creates cumulative entrainment.
+      </div>
+    </div>
+
+    <div class="phrase-block">
+      <div class="phrase-vox">ΘΗΝΩΛ · [7-second silence] · ΑΩΛΘΗ</div>
+      <div class="phrase-trans">"The threshold opens — [crossing — silence — arrival] — to the source"</div>
+      <div class="phrase-instruction">
+        DELIVERY: Speak ΘΗΝΩΛ once with full breath. Then absolute silence for 7 seconds — no movement, no swallowing. Then ΑΩΛΘΗ as if waking from within.
+        <br>// USE WHEN: This is the dimensional crossing phrase. Use it at the peak of your practice, not at the beginning.
+      </div>
+    </div>
+
+    <div class="phrase-block">
+      <div class="phrase-vox">ΜΩΝΗ · ΣΞΩΜΑ · ΚΩΛΗ · ΛΩΣΑΗ</div>
+      <div class="phrase-trans">"The humming foundation of attention grounds into the luminous field"</div>
+      <div class="phrase-instruction">
+        DELIVERY: Begin with lips sealed on ΜΩΝΗ — just the hum. Let M resonate for 4 seconds before opening. This is the closing phrase — use it to return from expanded states with your perceptions integrated.
+        <br>// USE WHEN: Closing practice and grounding back into physical awareness.
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 7: PROTOCOL -->
+  <section class="fade-in">
+    <div class="section-label">// Practice</div>
+    <h2>The 7-Stage Perceptual Protocol</h2>
+    <p>How to actually use this language to shift your awareness. This is a complete session.</p>
+
+    <div class="protocol-step">
+      <div class="step-num">01</div>
+      <div class="step-content">
+        <h3>Physical Preparation (5 min)</h3>
+        <p>Sit with spine erect. Breathe 4-7-8 rhythm (4 counts inhale, 7 hold, 8 exhale) × 4 cycles. This drops your cortisol, shifts the autonomic nervous system toward parasympathetic dominance, and opens the theta window. Without this step the language operates at reduced capacity — the nervous system must be calm to receive subtle signal.</p>
+      </div>
+    </div>
+
+    <div class="protocol-step">
+      <div class="step-num">02</div>
+      <div class="step-content">
+        <h3>Frequency Bathing (5–10 min)</h3>
+        <p>Use the frequency player above. Begin at 396 Hz. Move to 528 Hz. End at 852 Hz. Each for 2–3 minutes. Your brain will begin entraining. You may feel subtle pressure or warmth in the forehead — this is normal gamma activation. Do not open your eyes.</p>
+      </div>
+    </div>
+
+    <div class="protocol-step">
+      <div class="step-num">03</div>
+      <div class="step-content">
+        <h3>Phoneme Warming (3 min)</h3>
+        <p>Speak each phoneme in the table above once, slowly, feeling where it vibrates in your body. Λ should vibrate in the chest. Η should vibrate in the forehead. Μ should buzz the lips and skull. Ζ should activate the throat. This is calibrating your instrument before playing.</p>
+      </div>
+    </div>
+
+    <div class="protocol-step">
+      <div class="step-num">04</div>
+      <div class="step-content">
+        <h3>Opening Gate (anchor phrase)</h3>
+        <p>Speak: <em>ΚΩΛΗ · ΛΩΣΑΗ · ΣΞΩΜΑ · ΘΗΝΩΛ</em> three times. With each repetition, increase the volume of resonance internally while maintaining the same external volume. By the third repetition you should feel the phrase speaking itself rather than you speaking it.</p>
+      </div>
+    </div>
+
+    <div class="protocol-step">
+      <div class="step-num">05</div>
+      <div class="step-content">
+        <h3>The Receiver Invocation</h3>
+        <p>Speak: <em>ΨΗΘΑΛ · ΝΩΑΘΗ · ΧΩΛΗΜ · ΑΩΛΘΗ</em> once. Then silence. The quality of this silence is different from ordinary silence — it has texture, depth. Stay in it. If images, sounds, geometries, or knowings arise — do not grasp them. Observe. This is ΛΩΣΑΗ operating.</p>
+      </div>
+    </div>
+
+    <div class="protocol-step">
+      <div class="step-num">06</div>
+      <div class="step-content">
+        <h3>The Crossing (peak practice)</h3>
+        <p>Only after significant familiarity with steps 1–5: speak <em>ΘΗΝΩΛ · [7 seconds] · ΑΩΛΘΗ</em>. This phrase is not metaphorical — it models the actual perceptual crossing in its timing and phonetics. The 7-second silence is the crossing itself. What you perceive in those 7 seconds is the target state of this entire language.</p>
+      </div>
+    </div>
+
+    <div class="protocol-step">
+      <div class="step-num">07</div>
+      <div class="step-content">
+        <h3>Grounding & Integration</h3>
+        <p>Speak: <em>ΜΩΝΗ · ΣΞΩΜΑ · ΚΩΛΗ · ΛΩΣΑΗ</em>. Then open your eyes slowly. Before doing anything else, write or voice-memo everything you perceived. The integration window is approximately 4 minutes before the material disperses. Keep a dedicated journal — patterns across sessions are where the deepest signal lives.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- SECTION 8: HONEST FRAME -->
+  <section class="fade-in">
+    <div class="section-label">// Epistemic Note</div>
+    <h2>What This Language Is and Isn't</h2>
+    <p>
+      The scientific foundations here are real: cymatics, brainwave entrainment, and formant acoustics 
+      are documented and measurable phenomena. The Solfeggio frequencies have documented physiological 
+      effects in peer-reviewed research. Mantric traditions across cultures have independently arrived 
+      at sound-based consciousness expansion for millennia.
+    </p>
+    <p>
+      What remains speculative is the specific claim of "perceiving other dimensions" — this language 
+      cannot guarantee that outcome, and no language could. What it <em>can</em> reliably do is shift 
+      the quality of attention: deepen meditative states, enhance theta-gamma coherence, quiet the 
+      default mode network, and open the kind of perceptual stillness in which anomalous 
+      experiences — hypnagogic imagery, non-ordinary knowing, expanded spatial awareness — 
+      become available to those who have cultivated the capacity for them.
+    </p>
+    <p>
+      Think of it as building a cleaner antenna, not a guaranteed signal. The signal depends 
+      on what you are and what you're ready to receive.
+    </p>
+  </section>
+
+  <footer>
+    <p>VOXLUMINARA — A Resonant Language of Expanded Perception</p>
+    <p style="margin-top:12px; font-size:0.75rem; letter-spacing:0.2em;">
+      BUILT ON: CYMATICS · BRAINWAVE ENTRAINMENT · FORMANT PHONETICS · MANTRIC TRADITION
+    </p>
+  </footer>
+
+</div>
+
+<!-- CYMATICS CANVAS ANIMATION -->
+<script>
+const canvas = document.getElementById('cymaticsCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, t = 0;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function drawCymatics() {
+  ctx.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = H / 2;
+  const maxR = Math.min(W, H) * 0.45;
+
+  // Multiple cymatic rings
+  for (let ring = 1; ring <= 6; ring++) {
+    const r = maxR * (ring / 6);
+    const nodes = ring * 3 + 3;
+    const freq = ring * 0.7;
+
+    ctx.beginPath();
+    for (let i = 0; i <= 360; i++) {
+      const angle = (i * Math.PI) / 180;
+      const wave = Math.sin(nodes * angle + t * freq) * (r * 0.06);
+      const rad = r + wave;
+      const x = cx + Math.cos(angle) * rad;
+      const y = cy + Math.sin(angle) * rad;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+
+    const hue = 260 + ring * 15;
+    const alpha = 0.25 - ring * 0.02;
+    ctx.strokeStyle = `hsla(${hue}, 80%, 65%, ${alpha})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Radial lines
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2 + t * 0.05;
+    const wave = Math.sin(t * 2 + i) * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(
+      cx + Math.cos(angle) * maxR * (0.6 + wave * 0.1),
+      cy + Math.sin(angle) * maxR * (0.6 + wave * 0.1)
+    );
+    ctx.strokeStyle = `rgba(107, 53, 232, 0.06)`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Central mandala
+  for (let p = 3; p <= 8; p++) {
+    ctx.beginPath();
+    for (let i = 0; i <= p; i++) {
+      const angle = (i / p) * Math.PI * 2 + t * (p % 2 === 0 ? 0.03 : -0.03);
+      const r2 = maxR * 0.12 + Math.sin(t * 3 + p) * 5;
+      const x = cx + Math.cos(angle) * r2;
+      const y = cy + Math.sin(angle) * r2;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = `rgba(0, 212, 255, 0.08)`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  t += 0.008;
+  requestAnimationFrame(drawCymatics);
+}
+drawCymatics();
+
+// ── AUDIO ──
+let audioCtx = null;
+let currentOsc = null, gainNode = null;
+let currentPlayingFreq = null;
+
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+// ── Geometry Lab bridge (v1.0) — [INVENTED] mapping, no physical law ties phonemes/modes to Hz ──
+const PHONEME_FREQUENCY = {
+  'Κ':174, 'Τ':174, 'Π':174,
+  'Σ':396, 'Ξ':396, 'Ψ':396,
+  'Λ':528, 'Ω':528, 'Θ':528,
+  'Ν':639, 'Μ':639, 'Η':639,
+  'Ζ':852, 'Φ':852, 'Χ':852,
+  'Υ':417, 'Ρ':741, 'Α':963,
+};
+const FREQUENCY_MODE = { 174:'radial', 396:'harmonic', 417:'edges', 528:'harmonic', 639:'edges', 741:'edges', 852:'harmonic', 963:'edges' };
+
+function postToLabBridge(hz, active) {
+  if (window.opener && !window.opener.closed) {
+    window.opener.postMessage({ type: 'voxluminara-tone', hz, active, mode: FREQUENCY_MODE[hz] }, '*');
+  }
+}
+
+function phonemeClicked(glyph, cardEl) {
+  const hz = PHONEME_FREQUENCY[glyph];
+  if (!hz) return;
+  playFreq(hz, cardEl);
+}
+
+function playFreq(freq, btn) {
+  const ctx2 = getAudio();
+  stopFreq();
+  currentPlayingFreq = freq;
+
+  // Remove active from all
+  document.querySelectorAll('.freq-btn, .phoneme-card').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  postToLabBridge(freq, true);
+
+  gainNode = ctx2.createGain();
+  gainNode.gain.setValueAtTime(0, ctx2.currentTime);
+  gainNode.gain.linearRampToValueAtTime(0.18, ctx2.currentTime + 0.5);
+  gainNode.connect(ctx2.destination);
+
+  // ── KEY FIX: also feed into destNode so recording captures this tone ──
+  if (destNode && destNode.context === ctx2) {
+    gainNode.connect(destNode);
+    // Also feed into recAnalyser for waveform
+    if (recAnalyser) gainNode.connect(recAnalyser);
+  }
+
+  // Primary tone
+  currentOsc = ctx2.createOscillator();
+  currentOsc.type = 'sine';
+  currentOsc.frequency.setValueAtTime(freq, ctx2.currentTime);
+  currentOsc.connect(gainNode);
+  currentOsc.start();
+
+  // Subtle binaural beat (4 Hz offset for theta)
+  const osc2 = ctx2.createOscillator();
+  const gain2 = ctx2.createGain();
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(freq + 4, ctx2.currentTime);
+  gain2.gain.setValueAtTime(0.06, ctx2.currentTime);
+  osc2.connect(gain2);
+  gain2.connect(ctx2.destination);
+  if (destNode && destNode.context === ctx2) gain2.connect(destNode);
+  osc2.start();
+
+  document.getElementById('freq-display').textContent = 
+    `// PLAYING: ${freq} Hz · binaural beat: +4 Hz theta offset · use headphones`;
+
+  // Store both for cleanup
+  currentOsc._companion = osc2;
+  currentOsc._companionGain = gain2;
+}
+
+function stopFreq() {
+  if (currentOsc) {
+    try {
+      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+      setTimeout(() => { try { currentOsc.stop(); } catch(e){} }, 350);
+      if (currentOsc._companion) {
+        currentOsc._companionGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+        const c = currentOsc._companion;
+        setTimeout(() => { try { c.stop(); } catch(e){} }, 350);
+      }
+    } catch(e) {}
+    currentOsc = null;
+    if (currentPlayingFreq) postToLabBridge(currentPlayingFreq, false);
+    currentPlayingFreq = null;
+  }
+  document.querySelectorAll('.freq-btn, .phoneme-card').forEach(b => b.classList.remove('active'));
+  document.getElementById('freq-display').textContent = '— select a frequency above —';
+}
+
+// ── SCROLL ANIMATIONS ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) e.target.classList.add('visible');
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// ════════════════════════════════════════════════
+// RECORD / SAVE / IMPORT
+// ════════════════════════════════════════════════
+// FIX: We do NOT use getUserMedia() to capture tones.
+// getUserMedia() triggers browser echo-cancellation which mutes the AudioContext output.
+// Instead we tap AudioContext's own signal via createMediaStreamDestination() —
+// tones route to BOTH speakers (destination) AND the recorder (destNode) with zero interference.
+// Mic overlay is opt-in via a separate toggle, mixed in the AudioContext graph.
+// ════════════════════════════════════════════════
+
+let mediaRecorder   = null;
+let recordedChunks  = [];
+let recordingBlob   = null;
+let isRecording     = false;
+let recStartTime    = null;
+let recTimerInterval = null;
+let waveformAnimId  = null;
+let destNode        = null;   // MediaStreamDestinationNode — captures AudioContext output
+let recAnalyser     = null;   // Analyser tapped from destNode for waveform
+let micStream       = null;   // Optional mic stream
+let micGain         = null;   // Gain node for mic in AudioContext graph
+
+const recBtn       = document.getElementById('rec-btn');
+const recBtnText   = document.getElementById('rec-btn-text');
+const saveBtn      = document.getElementById('save-btn');
+const micToggle    = document.getElementById('mic-toggle');
+const recStatus    = document.getElementById('rec-status');
+const playbackArea = document.getElementById('playback-area');
+const playbackAudio = document.getElementById('playback-audio');
+const playbackLabel = document.getElementById('playback-label');
+const waveCanvas   = document.getElementById('waveform-canvas');
+const waveCtx2d    = waveCanvas.getContext('2d');
+
+// ── ENSURE DEST NODE ──
+// Called once; creates a MediaStreamDestinationNode on the shared AudioContext.
+// All gainNodes in playFreq() will also connect here so tones are captured.
+function ensureDestNode() {
+  const ctx = getAudio();
+  if (!destNode || destNode.context.state === 'closed') {
+    destNode = ctx.createMediaStreamDestination();
+    // Analyser reads from destNode's input for waveform
+    recAnalyser = ctx.createAnalyser();
+    recAnalyser.fftSize = 2048;
+  }
+  return destNode;
+}
+
+// ── RESIZE CANVAS ──
+function resizeWaveCanvas() {
+  waveCanvas.width  = waveCanvas.offsetWidth  || 500;
+  waveCanvas.height = waveCanvas.offsetHeight || 60;
+}
+window.addEventListener('resize', resizeWaveCanvas);
+resizeWaveCanvas();
+
+// ── TIMER ──
+function startTimer() {
+  recStartTime = Date.now();
+  recTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - recStartTime) / 1000);
+    const m   = Math.floor(elapsed / 60).toString().padStart(2, '0');
+    const sec = (elapsed % 60).toString().padStart(2, '0');
+    recStatus.textContent = `● RECORDING  ${m}:${sec}`;
+    recStatus.className = 'rec-status active';
+  }, 500);
+}
+function stopTimer() { clearInterval(recTimerInterval); }
+
+// ── WAVEFORM ──
+function drawWaveform() {
+  if (!recAnalyser) return;
+  const bufferLength = recAnalyser.fftSize;
+  const dataArray    = new Uint8Array(bufferLength);
+  const W = waveCanvas.width;
+  const H = waveCanvas.height;
+
+  function draw() {
+    waveformAnimId = requestAnimationFrame(draw);
+    recAnalyser.getByteTimeDomainData(dataArray);
+
+    waveCtx2d.clearRect(0, 0, W, H);
+    waveCtx2d.fillStyle = 'rgba(9,6,24,0.85)';
+    waveCtx2d.fillRect(0, 0, W, H);
+
+    // Center line
+    waveCtx2d.strokeStyle = 'rgba(0,212,255,0.15)';
+    waveCtx2d.lineWidth = 0.5;
+    waveCtx2d.beginPath();
+    waveCtx2d.moveTo(0, H / 2);
+    waveCtx2d.lineTo(W, H / 2);
+    waveCtx2d.stroke();
+
+    // Waveform
+    waveCtx2d.lineWidth = 1.5;
+    waveCtx2d.strokeStyle = 'rgba(107,53,232,0.9)';
+    waveCtx2d.beginPath();
+    const sliceWidth = W / bufferLength;
+    let x = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      const v = dataArray[i] / 128.0;
+      const y = (v * H) / 2;
+      i === 0 ? waveCtx2d.moveTo(x, y) : waveCtx2d.lineTo(x, y);
+      x += sliceWidth;
+    }
+    waveCtx2d.lineTo(W, H / 2);
+    waveCtx2d.stroke();
+  }
+  draw();
+}
+
+function stopWaveform() {
+  if (waveformAnimId) { cancelAnimationFrame(waveformAnimId); waveformAnimId = null; }
+  waveCtx2d.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+  waveCtx2d.fillStyle = 'rgba(9,6,24,0.85)';
+  waveCtx2d.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+  waveCtx2d.strokeStyle = 'rgba(0,212,255,0.1)';
+  waveCtx2d.lineWidth = 0.5;
+  waveCtx2d.beginPath();
+  waveCtx2d.moveTo(0, waveCanvas.height / 2);
+  waveCtx2d.lineTo(waveCanvas.width, waveCanvas.height / 2);
+  waveCtx2d.stroke();
+}
+
+// ── TOGGLE RECORD ──
+async function toggleRecord() {
+  if (!isRecording) {
+    // ── START ──────────────────────────────────────
+    const ctx = getAudio();
+    const dn  = ensureDestNode();
+
+    recordedChunks = [];
+    recordingBlob  = null;
+
+    // Build the stream we will record from
+    let recordStream = dn.stream;
+
+    // Optional mic overlay — mixed entirely inside AudioContext graph
+    // so it never triggers echo-cancellation on tones
+    if (micToggle && micToggle.checked) {
+      try {
+        // Request mic with echo cancellation OFF so tones stay clean
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+        });
+        micGain = ctx.createGain();
+        micGain.gain.setValueAtTime(1.0, ctx.currentTime);
+        const micSource = ctx.createMediaStreamSource(micStream);
+        // Mic → micGain → destNode (silent in speakers, captured in recording)
+        micSource.connect(micGain);
+        micGain.connect(dn);
+        recStatus.textContent = '● Mic + tones both armed — hit a frequency';
+      } catch (err) {
+        micToggle.checked = false;
+        recStatus.textContent = '✗ Mic access denied — recording tones only';
+      }
+    }
+
+    // Prefer WebM opus; fall back gracefully
+    const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg']
+      .find(t => MediaRecorder.isTypeSupported(t)) || '';
+
+    mediaRecorder = mimeType
+      ? new MediaRecorder(recordStream, { mimeType })
+      : new MediaRecorder(recordStream);
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      const type = mediaRecorder.mimeType || 'audio/webm';
+      recordingBlob = new Blob(recordedChunks, { type });
+      const url = URL.createObjectURL(recordingBlob);
+      playbackAudio.src = url;
+      playbackLabel.textContent = '— your session —';
+      playbackArea.classList.add('visible');
+      saveBtn.disabled = false;
+      if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+      stopWaveform();
+      const dur = Math.floor((Date.now() - recStartTime) / 1000);
+      recStatus.textContent = `✓ Captured ${dur}s — play back or save below`;
+      recStatus.className = 'rec-status ready';
+    };
+
+    mediaRecorder.start(100);
+    isRecording = true;
+    recBtn.classList.add('recording');
+    recBtnText.textContent = 'Stop';
+    saveBtn.disabled = true;
+    playbackArea.classList.remove('visible');
+    startTimer();
+    drawWaveform();
+
+    if (!micToggle || !micToggle.checked) {
+      recStatus.textContent = '● Armed — tones will be captured. Hit a frequency now.';
+      recStatus.className = 'rec-status active';
+    }
+
+  } else {
+    // ── STOP ───────────────────────────────────────
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    isRecording = false;
+    recBtn.classList.remove('recording');
+    recBtnText.textContent = 'Record';
+    stopTimer();
+  }
+}
+
+// ── SAVE RECORDING ──
+function saveRecording() {
+  if (!recordingBlob) return;
+  const ext  = recordingBlob.type.includes('webm') ? 'webm' : 'ogg';
+  const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const name = `voxluminara-session-${ts}.${ext}`;
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(recordingBlob);
+  a.download = name;
+  a.click();
+  recStatus.textContent = `✓ Saved as ${name}`;
+  recStatus.className = 'rec-status ready';
+}
+
+// ── IMPORT AUDIO ──
+function importAudio(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  playbackAudio.src = URL.createObjectURL(file);
+  playbackLabel.textContent = `— ${file.name} —`;
+  playbackArea.classList.add('visible');
+  saveBtn.disabled = true;
+  recordingBlob = null;
+  recStatus.textContent = `✓ Imported: ${file.name}`;
+  recStatus.className = 'rec-status ready';
+  event.target.value = '';
+}
+</script>
+
+</body>
+</html>
